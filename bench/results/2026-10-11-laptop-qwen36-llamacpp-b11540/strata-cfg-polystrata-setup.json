@@ -1,0 +1,28 @@
+{
+ "exe": "E:\\Projects\\PolyStrata\\engine-poly\\strata-poly.exe",
+ "args": [
+  "--model",
+  "E:\\Projects\\PolyStrata\\models\\qwen36-UD-Q3_K_M\\Qwen3.6-35B-A3B-UD-Q3_K_M.gguf",
+  "--max-context",
+  "36864",
+  "--expert-profile",
+  "E:\\Projects\\PolyStrata\\packs\\qwen36-ud-q3_k_m\\expert-profile.txt",
+  "--conversation-cache-mib",
+  "8192",
+  "--threads",
+  "13",
+  "--tail-skip",
+  "6"
+ ],
+ "cwd": "E:\\Projects\\PolyStrata",
+ "tokenizer": "E:\\Projects\\PolyStrata\\packs\\qwen36-ud-q3_k_m\\tokenizer",
+ "model_name": "qwen3.6-35b-a3b-ud-q3_k_m",
+ "display_name": "Qwen3.6-35B-A3B UD-Q3_K_M",
+ "log": "E:\\Projects\\PolyStrata\\strata-qwen36-ud-q3_k_m.log",
+ "lib_dirs": [
+  "E:\\Projects\\PolyStrata\\.venv\\Lib\\site-packages\\nvidia\\cu13\\bin\\x86_64"
+ ],
+ "port": 8190,
+ "gpu": 0,
+ "gpus_asked": true
+}

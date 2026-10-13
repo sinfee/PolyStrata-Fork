@@ -1,0 +1,111 @@
+{
+ "gguf": "E:/Projects/PolyStrata/models/tiel-UD-Q3_K_XL/Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL.gguf",
+ "llama_server": "C:/lcpp-bench/b11540/llama-server.exe",
+ "strata_cfg": "E:/Projects/PolyStrata/strata-tiel-ud-q3_k_xl.json",
+ "serve": "E:/Projects/PolyStrata/serve",
+ "cwd": "E:/Projects/PolyStrata",
+ "configs": [
+  {
+   "name": "polystrata-setup",
+   "kind": "strata",
+   "args": [],
+   "override": {
+    "--max-context": "36864"
+   }
+  },
+  {
+   "name": "llama-tuned-mtp2",
+   "kind": "llama",
+   "args": [
+    "-ngl",
+    "99",
+    "--n-cpu-moe",
+    "30",
+    "-c",
+    "36864",
+    "-ctk",
+    "q8_0",
+    "-ctv",
+    "q8_0",
+    "-fa",
+    "on",
+    "-t",
+    "20",
+    "-ub",
+    "512",
+    "--spec-type",
+    "draft-mtp",
+    "--spec-draft-n-max",
+    "2"
+   ]
+  },
+  {
+   "name": "llama-tuned-mtp3",
+   "kind": "llama",
+   "args": [
+    "-ngl",
+    "99",
+    "--n-cpu-moe",
+    "30",
+    "-c",
+    "36864",
+    "-ctk",
+    "q8_0",
+    "-ctv",
+    "q8_0",
+    "-fa",
+    "on",
+    "-t",
+    "20",
+    "-ub",
+    "512",
+    "--spec-type",
+    "draft-mtp",
+    "--spec-draft-n-max",
+    "3"
+   ]
+  },
+  {
+   "name": "llama-tuned-nomtp",
+   "kind": "llama",
+   "args": [
+    "-ngl",
+    "99",
+    "--n-cpu-moe",
+    "30",
+    "-c",
+    "36864",
+    "-ctk",
+    "q8_0",
+    "-ctv",
+    "q8_0",
+    "-fa",
+    "on",
+    "-t",
+    "20",
+    "-ub",
+    "512"
+   ]
+  },
+  {
+   "name": "llama-fit-mtp2",
+   "kind": "llama",
+   "args": [
+    "--fit",
+    "on",
+    "-c",
+    "36864",
+    "-ctk",
+    "q8_0",
+    "-ctv",
+    "q8_0",
+    "-fa",
+    "on",
+    "--spec-type",
+    "draft-mtp",
+    "--spec-draft-n-max",
+    "2"
+   ]
+  }
+ ]
+}
