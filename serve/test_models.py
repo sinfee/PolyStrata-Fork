@@ -1,8 +1,12 @@
 """The model registry (serve/models.py) and the switch between models, with engines that are not processes."""
+import contextlib
+import io
 import json
 import struct
+import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -193,6 +197,30 @@ class Switch(unittest.TestCase):
         self.assertEqual((cur["model"]["id"], cur["loaded"], cur["name"]), ("beta", True, "beta"))
         self.assertEqual(call("/api/models/unload", {}), (200, {"status": "unloaded"}))
         self.assertEqual(call("/api/models/current")[1]["loaded"], False)
+
+
+class Start(unittest.TestCase):
+    """main() with --engine strata as far as "ready": 0.1.42's line for the replicas' cards read `groups`, a name of
+    start_model()'s, and every start of a real engine ended in a NameError."""
+
+    def test_main_reaches_ready(self):
+        real_sleep = time.sleep
+
+        def sleep(s):                       # Ctrl+C in main()'s wait, real sleeps in the server's threads
+            if threading.current_thread() is threading.main_thread():
+                raise KeyboardInterrupt
+            real_sleep(s)
+        with tempfile.TemporaryDirectory() as d:
+            cfg = install(Path(d), "alpha", "qwen35moe", "a.gguf")
+            tok = ByteTokenizer()
+            out = io.StringIO()
+            with mock.patch.object(sys, "argv", ["server.py", "--engine", "strata", "--config", str(cfg), "--port", "0"]), \
+                    mock.patch.object(S, "load_tokenizer", lambda p: tok), \
+                    mock.patch.object(S, "start_model", lambda cfg, tok, lazy=False: (Stopped(tok), None, {}, None, None)), \
+                    mock.patch.object(S.time, "sleep", sleep), mock.patch.object(S.signal, "signal"), \
+                    contextlib.redirect_stdout(out):
+                self.assertEqual(S.main(), 0)
+        self.assertIn("ready: http://127.0.0.1:0/v1", out.getvalue())
 
 
 if __name__ == "__main__":

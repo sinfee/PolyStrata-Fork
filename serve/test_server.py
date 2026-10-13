@@ -4473,6 +4473,23 @@ class SilentEngine(unittest.TestCase):
             engine.proc.poll.return_value = -6
             self.assertIn("a hang it caught", engine.death_note())
 
+    def test_death_note_names_a_crash_signal(self):
+        # only SIGKILL is what Linux sends a program short of RAM; a crash must not be blamed on RAM
+        import tempfile
+        engine = self.bare(0.3)
+        engine.last_err = None
+        with tempfile.TemporaryDirectory() as d:
+            engine.log_path = os.path.join(d, "e.log")
+            with open(engine.log_path, "w", encoding="utf-8") as f:
+                f.write("strata-poly: loaded in 12.6 s\nprompt 300 tokens\n")
+            engine.proc.poll.return_value = -11
+            note = engine.death_note()
+            self.assertIn("SIGSEGV", note)
+            self.assertIn("prompt 300 tokens", note)
+            self.assertNotIn("RAM:", note)
+            engine.proc.poll.return_value = -9
+            self.assertIn("running out of RAM", engine.death_note())
+
     def test_prompt_chunks_set_the_wait(self):
         # a PP line every second, at 100 tok/s: far over a 0.3 s silence, but each chunk is on time for its size
         engine = self.bare(0.3)

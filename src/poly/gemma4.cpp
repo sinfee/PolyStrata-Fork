@@ -248,7 +248,9 @@ void Gemma4::alloc_caches() {
     for (const Block& B : blocks_)
         if (B.swa) rings += 2 * (size_t) ring_ * B.n_kv * B.dim;
     uint16_t* kv = rings ? (uint16_t*) dmalloc(rings * sizeof(uint16_t), "the attention cache") : nullptr;
-    for (Block& B : blocks_) {
+    for (int il = 0; il < (int) blocks_.size(); ++il) {
+        Block& B = blocks_[(size_t) il];
+        if (!runs(il)) continue;
         const size_t row = (size_t) B.n_kv * B.dim;
         if (B.swa) {
             B.keys = kv;
@@ -288,14 +290,14 @@ void Gemma4::assign_scratch() {
 }
 
 // A sequence's rows are the full layers': a window layer's are part of its state (save_layer()).
-size_t Gemma4::row_bytes() const {
+size_t Gemma4::card_row_bytes() const {
     size_t b = 0;
     for (const Block& B : blocks_)
         if (!B.swa) b += 2 * (size_t) B.n_kv * B.dim * sizeof(uint16_t);
     return b;
 }
 
-void Gemma4::save_rows(int64_t first, int64_t n, uint8_t* dst) {
+void Gemma4::save_card_rows(int64_t first, int64_t n, uint8_t* dst) {
     if (first < 0 || n < 0 || first + n > opt_.max_context)
         throw std::logic_error("save_rows: the rows are outside the context");
     ck(cudaStreamSynchronize(cs(st_)), "save rows");
@@ -310,7 +312,7 @@ void Gemma4::save_rows(int64_t first, int64_t n, uint8_t* dst) {
     }
 }
 
-void Gemma4::load_rows(const uint8_t* src, int64_t from, int64_t count, int64_t first, int64_t n) {
+void Gemma4::load_card_rows(const uint8_t* src, int64_t from, int64_t count, int64_t first, int64_t n) {
     if (from < 0 || first < from || n < 0 || first + n > from + count || first + n > opt_.max_context)
         throw std::logic_error("load_rows: the rows are outside what was saved");
     cover(first + n);

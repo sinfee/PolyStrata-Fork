@@ -84,6 +84,13 @@ class Reasoning(unittest.TestCase):
             pieces = [text[i:i + size] for i in range(0, len(text), size)]
             self.assertEqual(self.events(pieces), ("The user asks for a capital.", "Paris."))
 
+    def test_an_answer_right_after_a_quote_is_content(self):
+        # a thought that ends on a backtick: its answer follows <channel|> at once, as in every Gemma turn
+        text = "<|channel>thought\nOutput: `«x» 🙂`<channel|>«x» 🙂"
+        for size in (1, 3, len(text)):
+            pieces = [text[i:i + size] for i in range(0, len(text), size)]
+            self.assertEqual(self.events(pieces), ("Output: `«x» 🙂`", "«x» 🙂"))
+
     def test_a_reply_without_a_thought_is_content(self):
         self.assertEqual(self.events(["Par", "is."]), ("", "Paris."))
         self.assertEqual(self.events(["<|chan", "ged> x"]), ("", "<|changed> x"))
@@ -231,6 +238,11 @@ class ServiceForGemma(unittest.TestCase):
         text, _ = self.prompt({"messages": self.ASKED[:1], "chat_template_kwargs": {"enable_thinking": False}})
         self.assertEqual(text, "<bos><|turn>user\n1+2?<turn|>\n<|turn>model\n<|channel>thought\n<channel|>")
         self.assertEqual(self.svc.encode_prompt(*openai_to_messages({"messages": self.ASKED[:1]}))[0], 256)   # <bos>
+
+    def test_no_messages_is_refused(self):
+        # its template renders a prompt for none, where Qwen's raises: the request is a 400 either way
+        with self.assertRaisesRegex(ValueError, "No messages provided"):
+            self.prompt({"messages": []})
 
     def test_answers_go_in_the_order_of_their_calls_under_their_names(self):
         # sent sub's first: the model reads answers by position, so they are put back in the calls' order

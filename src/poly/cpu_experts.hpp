@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -40,6 +41,7 @@ private:
     alignas(64) std::atomic<Batch*> cur_{nullptr};
     alignas(64) std::atomic<int> users_{0};      ///< workers that may hold a Batch pointer
     std::atomic<int> sleepers_{0};
+    std::mutex one_;                             ///< one batch at a time: on several cards, each card's thread posts
     std::atomic<uint32_t> posted_{0};            ///< counts the batches: what a sleeping worker waits on
     std::atomic<bool> quit_{false};
 };

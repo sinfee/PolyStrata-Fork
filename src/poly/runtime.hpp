@@ -69,8 +69,12 @@ inline double ms_since(Clock::time_point t) {
     return std::chrono::duration<double, std::milli>(Clock::now() - t).count();
 }
 
+// A failed call also leaves its error for cudaGetLastError(), where the check after the next kernel launch would
+// find it and fail a later request with it.  The exception reports it, so it is taken back.
 inline void ck(cudaError_t e, const char* what) {
-    if (e != cudaSuccess) throw std::runtime_error(std::string(what) + ": " + cudaGetErrorString(e));
+    if (e == cudaSuccess) return;
+    cudaGetLastError();
+    throw std::runtime_error(std::string(what) + ": " + cudaGetErrorString(e));
 }
 
 inline size_t pad(size_t n) { return (n + 255) & ~size_t(255); }
@@ -149,6 +153,17 @@ public:
         return it == where_.end() ? nullptr : it->second.t;
     }
     const uint8_t* data(const TensorInfo& t) const { return where_.at(t.name).file->tensor_data(t); }
+    /// The files' bytes together.
+    uint64_t bytes() const {
+        uint64_t n = 0;
+        for (const auto& f : files_) n += f->file_size();
+        return n;
+    }
+    /// f(tensor) for every tensor of the model, in no order.
+    template <class F>
+    void each(F&& f) const {
+        for (const auto& w : where_) f(*w.second.t);
+    }
     /// A tensor's byte count, after checking that its file holds that much.
     size_t payload(const TensorInfo& t) const {
         const GgufFile& g = *where_.at(t.name).file;

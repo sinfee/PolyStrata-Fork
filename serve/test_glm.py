@@ -71,6 +71,18 @@ class ToolCalls(unittest.TestCase):
         self.assertEqual([(e.call.name, e.call.arguments) for e in evs if e.kind == "tool_call"], [("now", {})])
 
 
+class Reasoning(unittest.TestCase):
+    def test_an_answer_right_after_a_quote_is_content(self):
+        # GLM writes its answer right after </think>, also when the thinking ends on a quote
+        text = 'so I should just say "Paris."</think>Paris'
+        for size in (1, 5, len(text)):
+            with self.subTest(size=size):
+                p = OutputParser(thinking=True, call_format="glm")
+                evs = [e for i in range(0, len(text), size) for e in p.feed(text[i:i + size])] + p.finish()
+                self.assertEqual("".join(e.text for e in evs if e.kind == "reasoning"), 'so I should just say "Paris."')
+                self.assertEqual("".join(e.text for e in evs if e.kind == "content"), "Paris")
+
+
 class GlmTokens(ByteTokenizer):
     SPECIALS = ["<|endoftext|>", "<|user|>", "<|observation|>", "<|assistant|>"]
     pre = "glm4"

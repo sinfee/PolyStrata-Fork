@@ -49,7 +49,7 @@ class Chat(unittest.TestCase):
         svc = Service(self.old, self.tok, ChatTemplate(S.ROOT / "serve/chat_template.jinja"), model_name="alpha")
         svc.config_path, svc.models_root = str(first), root
         for p in (mock.patch.object(S, "load_tokenizer", lambda p: self.tok),
-                  mock.patch.object(S, "start_model", lambda cfg, tok, lazy=False: (self.new, None, {}, None))):
+                  mock.patch.object(S, "start_model", lambda cfg, tok, lazy=False: (self.new, None, {}, None, None))):
             p.start()
             self.addCleanup(p.stop)
         httpd = serve(svc, port=0)

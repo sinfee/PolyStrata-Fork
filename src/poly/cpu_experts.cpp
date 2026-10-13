@@ -13,7 +13,10 @@
 namespace strata::poly {
 namespace {
 
-constexpr int kRowsPerTask = 64;
+// Rows of gate and up, and of down, a task.  With fewer tasks than several a thread, the last round left threads
+// idle at the end of every layer: 64 rows gave Tiel's 512-row experts 8 tasks each, and its down products 32 tasks.
+constexpr int kRowsPerTask = 32;
+constexpr int kRowsPerDownTask = 16;
 constexpr int kSpinsBeforeSleep = 20000;   // about a millisecond of pause instructions
 
 const ggml_type_traits_cpu* traits(int type) { return ggml_get_type_traits_cpu((ggml_type) type); }
@@ -103,6 +106,7 @@ void Workers::run(int n, const std::function<void(int)>& fn) {
         for (int i = 0; i < n; ++i) fn(i);
         return;
     }
+    const std::lock_guard<std::mutex> one(one_);
     Batch b;
     b.fn = &fn;
     b.n = n;
@@ -152,8 +156,11 @@ void cpu_experts(Workers& workers, const CpuExpert* experts, int n, int rows, in
     act.resize((size_t) rows * a_bytes);
     hq.resize((size_t) n * h_bytes);
     h.resize((size_t) n * n_ff);
-    for (int t = 0; t < rows; ++t)
-        traits(tg->vec_dot_type)->from_float(x + (size_t) t * n_embd, act.data() + (size_t) t * a_bytes, n_embd);
+    // ggml's quantizers for the activations are scalar: microseconds a row, which on one thread kept the others
+    // waiting, here and before the down products
+    uint8_t* actp = act.data();
+    const auto act_from = traits(tg->vec_dot_type)->from_float;
+    workers.run(rows, [&](int t) { act_from(x + (size_t) t * n_embd, actp + (size_t) t * a_bytes, n_embd); });
 
     // The uses of one expert next to each other (by), and where each expert's run of them starts (run).
     by.resize((size_t) n);
@@ -165,7 +172,6 @@ void cpu_experts(Workers& workers, const CpuExpert* experts, int n, int rows, in
     const int n_run = (int) run.size();
     run.push_back(n);
 
-    const uint8_t* actp = act.data();
     float* hp = h.data();
     const int* byp = by.data();
     const int* runp = run.data();
@@ -197,16 +203,16 @@ void cpu_experts(Workers& workers, const CpuExpert* experts, int n, int rows, in
             }
         }
     });
-    for (int j = 0; j < n; ++j)
-        traits(td->vec_dot_type)->from_float(hp + (size_t) j * n_ff, hq.data() + (size_t) j * h_bytes, n_ff);
+    uint8_t* hqp = hq.data();
+    const auto hq_from = traits(td->vec_dot_type)->from_float;
+    workers.run(n, [&](int j) { hq_from(hp + (size_t) j * n_ff, hqp + (size_t) j * h_bytes, n_ff); });
 
-    const uint8_t* hqp = hq.data();
-    const int d_tasks = (n_embd + kRowsPerTask - 1) / kRowsPerTask;
+    const int d_tasks = (n_embd + kRowsPerDownTask - 1) / kRowsPerDownTask;
     workers.run(d_tasks, [&](int t) {
         static thread_local std::vector<float> one;   // an output value of every use
         one.resize((size_t) n);
         float* s = one.data();
-        const int r0 = t * kRowsPerTask, r1 = std::min(n_embd, r0 + kRowsPerTask);
+        const int r0 = t * kRowsPerDownTask, r1 = std::min(n_embd, r0 + kRowsPerDownTask);
         for (int r = r0; r < r1; ++r) {
             for (int u = 0; u < n_run; ++u) {
                 const uint8_t* down = experts[byp[runp[u]]].down + (size_t) r * d_row;

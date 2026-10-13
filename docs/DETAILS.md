@@ -588,11 +588,13 @@ the shrink. Without the flag nothing changes (the same answers as without it).
 
 GLM 5.3 Flash, Qwen3.6-35B-A3B, Ornith 1.5 and Gemma 4 26B-A4B take the same request without a switch in the
 config. Their expert cache is emptied and filled again for the new reserve, with the experts used most so far, and
-gets no larger than it was at the start; `{"reserve_mib": null}` is the reserve the engine started with. Gemma 4
+on a card without virtual memory management gets no larger than it was at the start; `{"reserve_mib": null}` is
+the reserve the engine started with. Gemma 4
 on a laptop's 8 GB card: `{"reserve_mib": 2500}` left no expert in VRAM and 2.0 GiB of it free, and the answer
 after it came at 55 tokens/s where the one before came at 66; `{"reserve_mib": null}` put 592 of the 635 experts
-back, and the next answer came at 74. On its own that engine sizes its cache again only when what it allocated
-since the start has left less than a quarter of its reserve free. GLM 5.3 Flash was not tried.
+back, and the next answer came at 74. On its own that engine looks before each request: from the second on it
+keeps half its reserve free, giving up its least used experts when another program takes VRAM and taking the most
+used ones it lacks when VRAM comes free ([BACKENDS.md](BACKENDS.md)). GLM 5.3 Flash was not tried.
 
 **Keep what the expert cache learned across restarts (opt-in, engine 0.1.36, #477):** a start fills the GPU's expert
 cache from the shipped profile, and the adaptive tier (`--adapt-every`) then moves in the experts your requests use.
@@ -780,16 +782,17 @@ print(r.choices[0].message.content)
   with no `"thinking"`, effort or budget thinks as the model's template does. `"anthropic_thinking": "on_request"` in
   `strata-<model>.json` renders a request with no `"thinking"` or budget without thinking, also when it gives an
   effort. That is Anthropic's own rule, and what Claude Code's short helper calls need; its real turns ask for
-  thinking when it is on there. Claude Code 2.1.282 asks for a session title with effort `high` and no `"thinking"`:
-  without the setting, Qwen3.6 on an 8 GB laptop thought 1,441 tokens (16.6 s) over the title before the first real
-  turn could start. An effort set with "Use for other apps too" still turns thinking on.
+  thinking when it is on there. Claude Code asks for a session title with effort `high`, no `"thinking"` and 512
+  tokens of room: without the setting, Qwen3.6 on an 8 GB laptop spent the 512 tokens thinking about the title,
+  5 s a request, and gave none. An effort set with "Use for other apps too" still turns thinking on.
 - **Reading an agent's prompt start when the server starts (opt-in).** After a restart an agent's first request
-  reads its whole prompt again. Claude Code's was 17,085 tokens in a test (9.9 s with Qwen3.6 on an 8 GB laptop),
-  and 14,504 of them were the system prompt and the tool list, which every session in the same folder sends again.
+  reads its whole prompt again. Claude Code's was 16,651 tokens in a test (11.1 s with Qwen3.6 on an 8 GB laptop),
+  and 14,452 of them were the system prompt and the tool list, which every session in the same folder sends again.
   `"warm_start": true` in `strata-<model>.json` keeps the first turn of the last request with tools (the system
   prompt with the tools, when that is 2,048 tokens or more) in `strata-<model>.warm-start` next to the config, and
-  reads it when the server starts: 8 s for those 14,504 tokens. Claude Code's first request then read 2,581 tokens
-  in 2.9 s. A request that comes in during that read stops it and goes first (one sent 3 s after the start waited
+  reads it when the server starts: 7.9 s for those 14,452 tokens. Claude Code's first request then had 12,288
+  tokens in common with the kept start and read the other 4,363 in 3.5 s. A request that comes in during that read
+  stops it and goes first (one sent 3 s after the start waited
   0.5 s), and the part read stays cached. It is off by default because the read keeps the GPU busy at every start,
   also when no agent comes.
 - **Streaming.** With `"stream": true` everything arrives as it is made: the thinking, the answer, and tool calls
@@ -852,7 +855,9 @@ print(r.choices[0].message.content)
   `"reasoning_budget_tokens": N` to `strata-<model>.json` (see above).
 - **Claude Code** (PolyStrata 0.1.17 or newer): set `ANTHROPIC_BASE_URL=http://127.0.0.1:8080` and
   `ANTHROPIC_MODEL` to a Claude model name it knows (it refuses names it doesn't; PolyStrata ignores the name), plus any
-  `ANTHROPIC_AUTH_TOKEN` (or your `api_key`, if you set one).
+  `ANTHROPIC_AUTH_TOKEN` (or your `api_key`, if you set one). It asks for 32,000 tokens of answer in every request,
+  more than a 32K context leaves beside its prompt: add `"fit_max_tokens": true` to `strata-<model>.json` (see
+  **Context** below).
 - **Codex CLI** (0.1.39): see [the Responses API](#the-responses-api-and-codex-cli) below.
 - **Context.** Chosen in setup (8K-262K). Requests longer than that are refused, never silently cut. A request whose
   `max_tokens` would run past the context is refused too (400); agents that always ask for their full output cap

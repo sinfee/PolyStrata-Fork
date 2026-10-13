@@ -1,6 +1,6 @@
-"""Tests for setup.py's Qwen3.6-35B-A3B, Ornith 1.5 and Gemma 4 26B-A4B (docs/BACKENDS.md): the pinned files, the
-estimates for a small card, and that each is installed by GLM's steps with nothing of GLM's own (no shipped expert
-profile, no draft block to fetch).  Mocked like tools/test_setup_glm.py, whose harness this uses.
+"""Tests for setup.py's Qwen3.6-35B-A3B, Ornith 1.5, Gemma 4 26B-A4B and Tiel Coder (docs/BACKENDS.md): the pinned
+files, the estimates for a small card, and that each is installed by GLM's steps with nothing of GLM's own (no shipped
+expert profile, no draft block to fetch).  Mocked like tools/test_setup_glm.py, whose harness this uses.
 
     python -m unittest tools.test_setup_gguf_models
 """
@@ -24,6 +24,8 @@ NEW = {
     "ornith": ("APEX-I-COMPACT", "Ornith-1.5-35B-A3B-APEX-MTP-I-Compact.gguf",
                "mudler/Ornith-1.5-35B-A3B-APEX-MTP-GGUF", 17437861408),
     "gemma4": ("UD-Q3_K_M", "gemma-4-26B-A4B-it-UD-Q3_K_M.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 12728497888),
+    "tiel": ("UD-Q3_K_XL", "Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL.gguf", "peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP",
+             17234935648),
 }
 # family: its other sizes in setup's order, the smaller and then the larger: (size, file, bytes)
 MORE = {
@@ -33,6 +35,8 @@ MORE = {
                ("APEX-I-QUALITY", "Ornith-1.5-35B-A3B-APEX-MTP-I-Quality.gguf", 23718411808)],
     "gemma4": [("UD-Q2_K_XL", "gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf", 10546934240),
                ("UD-Q4_K_M", "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf", 16947541728)],
+    "tiel": [("UD-IQ3_XXS", "Tiel-Coder-35B-A3B-MTP-UD-IQ3_XXS.gguf", 13600579424),
+             ("UD-Q4_K_XL", "Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf", 22749880160)],
 }
 
 
@@ -86,6 +90,7 @@ class Estimates(unittest.TestCase):
         self.assertAlmostEqual(need["qwen36"], 21, delta=0.5)
         self.assertAlmostEqual(need["ornith"], 22, delta=0.5)
         self.assertAlmostEqual(need["gemma4"], 18, delta=0.5)
+        self.assertAlmostEqual(need["tiel"], 21, delta=0.5)
         for f, n in need.items():
             self.assertIn(f"~{n:.0f} GB of RAM beside an 8 GB card", setup.FAMILIES[f]["about"])
             self.assertEqual(next(iter(setup.family_models(f).values()))["ram_gb"], round(n))
@@ -112,7 +117,7 @@ class Config(unittest.TestCase):
 
 
 class Main(unittest.TestCase):
-    """setup.main() for the three families, every outside effect mocked."""
+    """setup.main() for the four families, every outside effect mocked."""
     setUp, tearDown, main = glm_tests.Main.setUp, glm_tests.Main.tearDown, glm_tests.Main.main
 
     def test_install(self):

@@ -136,6 +136,39 @@ class PolyPrebuilt(unittest.TestCase):
                 setup.build_engine_poly(GPU, True, None)
         self.assertEqual(tools.call_args[0][0]["archs"], [89])
 
+    def compile_here(self, gpu, toolkit, vision="none"):
+        """build_engine_poly() with a compile that writes what it was asked: (the CMake definitions, the toolkit)."""
+        made = {}
+
+        def cmake(src, bdir, target, defs, vcvars, script):
+            made.setdefault(target, defs)
+            out = bdir / "bin" if target == "strata-vision" else bdir
+            out.mkdir(parents=True, exist_ok=True)
+            (out / (setup.VEXE if target == "strata-vision" else setup.POLY_EXE)).write_text(f"{target} {toolkit}")
+        with mock.patch.object(setup, "install_build_tools", lambda g, yes: (str(self.root / "nvcc"), None)), \
+                mock.patch.object(setup, "cmake_build", cmake), mock.patch.object(setup, "cuda_lib_dirs", lambda t: []), \
+                mock.patch.object(setup, "source_version", lambda: "0.1.42"):
+            setup.build_engine_poly(gpu, True, None, vision, toolkit)
+        return made
+
+    def test_cuda_12_compiles_in_place_of_a_ready_made_engine(self):
+        release(self.rel)
+        setup.get_poly_prebuilt(GPU)
+        made = self.compile_here(GPU, 12, "gpu")
+        self.assertEqual(sorted(made), ["strata-poly", "strata-vision"])
+        self.assertNotIn("-DSTRATA_EXPERIMENTAL_SM60=ON", made["strata-poly"])
+        meta = json.loads((self.eng / "BUILD.json").read_text())
+        self.assertEqual((meta["toolkit"], meta["archs"], meta["source"]), (12, [89], "local"))
+        # the ready-made one is not taken back while the model asks for CUDA 12, and is when it no longer does
+        self.assertEqual(self.compile_here(GPU, 12, "gpu"), {})
+        self.assertTrue(setup.get_poly_prebuilt(GPU))
+        self.assertEqual((self.eng / setup.POLY_EXE).read_text(), "new engine")
+
+    def test_cuda_12_for_a_pascal_card_is_the_experimental_build(self):
+        made = self.compile_here({"arch": 61, "driver": "550.54"}, 12)
+        self.assertIn("-DSTRATA_EXPERIMENTAL_SM60=ON", made["strata-poly"])
+        self.assertIn("-DCMAKE_CUDA_ARCHITECTURES=61", made["strata-poly"])
+
 
 if __name__ == "__main__":
     unittest.main()

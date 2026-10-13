@@ -7,7 +7,7 @@ named next to them; how is in [BACKENDS.md](BACKENDS.md).
 
 Someone asked Strata for GLM and DeepSeek in [issue 310](https://github.com/Niko1221/Strata/issues/310), and the
 maintainer closed it: "Other MoE architectures (DeepSeek, GLM) aren't planned: the kernels and the pack format are
-built around this model." So the four other models got an engine of their own, next to Strata's.
+built around this model." So the other models got an engine of their own, next to Strata's.
 
 The repo keeps Strata's git history and merges its releases, and Strata's own engine is in it unchanged. There are
 now open PRs in Strata for GLM 5.3 Flash (#1315) and DeepSeek V4 Flash (#1518). If Strata starts taking other
@@ -46,20 +46,22 @@ RTX 4070 Ti with 12 GB, and a laptop's RTX 5060 with 8 GB. Yours can go there to
 
 With `bench/bench_vs_llama.py`, the script Strata used for its own comparison. It runs PolyStrata and llama.cpp's
 `llama-server` in turns on the same GGUF and the same prompts and prints the medians of both
-([how to run it](COMMUNITY_BENCHMARKS.md#comparing-with-llamacpp)).
+([how to run it](COMMUNITY_BENCHMARKS.md#comparing-with-llamacpp)). On the README's 8 GB laptop, with Qwen3.6
+and with Tiel Coder, PolyStrata read the prompts 2.7 to 3.5 times as fast as llama.cpp b11540 and wrote 1.5 to 1.8
+times as fast (the two runs are linked there).
 
 ### Does it run on Radeon / AMD?
 
-Not the four added models yet. Their engine is CUDA only, so it needs an NVIDIA card. On a Radeon with 12 GB or
+Not the five added models yet. Their engine is CUDA only, so it needs an NVIDIA card. On a Radeon with 12 GB or
 more, PolyStrata runs Qwen3.8-Flash-Next through Strata's AMD backend. I want AMD support for the other models too,
 but I don't have an AMD card to test on yet.
 
 ### Will it run on a 6 GB card, or 4 GB?
 
 It has only run on 8 GB cards and up. With a context of 32K, Qwen3.6 takes about 5 GB of VRAM beside its experts,
-Ornith about 4 GB and Gemma 4 about 6 GB. The attention caches are part of that and take their share as a
-conversation grows, so a short chat leaves more room. On a 6 GB card Ornith is the one to try. That is untested.
-On 4 GB, none of them leaves room for experts.
+Ornith about 4 GB, Gemma 4 about 6 GB and Tiel Coder about 5 GB. The attention caches are part of that and take
+their share as a conversation grows, so a short chat leaves more room. On a 6 GB card Ornith is the one to try.
+That is untested. On 4 GB, none of them leaves room for experts.
 
 ### What about older cards like a GTX 1050?
 
@@ -77,8 +79,9 @@ Requests go in the issues, and the ones people ask for most come first.
 
 ### Can I run a fine-tune, or another model with the same architecture?
 
-People have, on their own PCs; it was not tried here. On Reddit, one ran HauhauCS's uncensored Qwen3.6-35B-A3B at
-Q4_K_M and another Tiel Coder 35B-A3B, which they said has a similar architecture. Their numbers are in the
+People have, on their own PCs. On Reddit, one ran HauhauCS's uncensored Qwen3.6-35B-A3B at Q4_K_M, which was not
+tried here, and another Tiel Coder 35B-A3B, a quantization of Ornith 1.5 that setup now installs (`--family tiel`).
+Their numbers are in the
 [community results](COMMUNITY_BENCHMARKS.md#the-models-polystrata-adds). The engine reads the architecture and the
 weights from the GGUF, so a fine-tune that keeps the architecture of Qwen3.6, Ornith 1.5 or Gemma 4 should run.
 Setup only knows the files it offers. To give it another, put the file in a folder under the name of the size
@@ -97,11 +100,11 @@ So far it has run on Linux only.
 
 ### Why Q3 and Q2 by default on the smaller models? Isn't that a big quality loss?
 
-UD-Q4_K_M is there for all three smaller models: `--model UD-Q4_K_M`. The installer picks UD-Q3_K_M because on an
-8 GB card more of its experts fit and its file is lighter on 32 GB of RAM. The speeds are close on the laptop:
-Qwen3.6 writes a short chat at 84 to 87 tokens/s with Q3 and 79 to 86 with Q4. It only takes Q2 when the RAM is
-too small for Q3. On a card that holds the whole model, Q3 and Q4 run at about the same speed, so take Q4 if you
-have the memory.
+A 4-bit size is there for all four smaller models: `--model UD-Q4_K_M`, for Ornith `APEX-I-QUALITY` and for Tiel
+Coder `UD-Q4_K_XL`. The installer picks UD-Q3_K_M because on an 8 GB card more of its experts fit and its file is
+lighter on 32 GB of RAM. The speeds are close on the laptop: Qwen3.6 writes a short chat at 94 to 100 tokens/s
+with Q3 and 84 to 85 with Q4. It only takes Q2 when the RAM is too small for Q3. On a card that holds the whole
+model, Q3 and Q4 run at about the same speed, so take Q4 if you have the memory.
 
 ### What about NVFP4?
 
@@ -110,10 +113,10 @@ which doesn't fit in RAM on a normal PC; the 2- and 3-bit GGUFs (79 to 114 GB) a
 
 ### Does it work on Windows?
 
-The three smaller models (Qwen3.6, Ornith 1.5, Gemma 4) and Qwen3.8-Flash-Next do. Setup downloads the new engine
-ready-made from the latest release, built for RTX 20 to RTX 50 cards. On a processor without AVX2, or when the
-engine's code changed after that release, it compiles the engine instead with Visual Studio's build tools and the
-CUDA toolkit, and offers to install them. GLM 5.3 Flash has only run on Linux.
+The four smaller models (Qwen3.6, Ornith 1.5, Gemma 4, Tiel Coder) and Qwen3.8-Flash-Next do. Setup downloads the
+new engine ready-made from the latest release, built for RTX 20 to RTX 50 cards. On a processor without AVX2, or
+when the engine's code changed after that release, it compiles the engine instead with Visual Studio's build tools
+and the CUDA toolkit, and offers to install them. GLM 5.3 Flash has only run on Linux.
 
 ### Can I use it with Claude Code, Codex or other apps?
 
@@ -121,11 +124,15 @@ Yes. It serves OpenAI- and Anthropic-compatible APIs on localhost, with tool cal
 `ANTHROPIC_BASE_URL=http://127.0.0.1:8080`. Codex CLI uses the Responses API at `/v1/responses`
 ([setup](DETAILS.md#the-responses-api-and-codex-cli)).
 
-For Claude Code, also add `"anthropic_thinking": "on_request"` to `strata-<model>.json` and restart. Claude Code
-first asks for a session title, and without the setting the model thinks that over before it starts on your task:
-17 s with Qwen3.6 on an 8 GB laptop ([more](DETAILS.md#using-it)). With `"warm_start": true` as well, the server
+For Claude Code, also add `"anthropic_thinking": "on_request"` and `"fit_max_tokens": true` to
+`strata-<model>.json` and restart. Claude Code first asks for a session title, and without the first setting the
+model thinks that over instead, and runs out of the 512 tokens the request allows before it has a title: 5 s a
+request with Qwen3.6 on an 8 GB laptop ([more](DETAILS.md#using-it)). The second one it needs with the 32K context
+setup suggests: Claude Code asks for
+32,000 tokens of room for the answer in every request, and the server refuses a request when the prompt leaves less
+than that. With the setting the server gives it the room that is left. With `"warm_start": true` as well, the server
 keeps Claude Code's system prompt and tool list and reads them when it starts, so the first request after a restart
-reads only the rest: 2.9 s instead of 9.9 s in a test.
+reads only the rest: 3.5 s instead of 11.1 s in a test.
 
 ### Who maintains it?
 

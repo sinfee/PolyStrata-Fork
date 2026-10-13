@@ -630,9 +630,9 @@ int serve(Session& ss) {
         try {
             const int had = engine.cached_experts();
             if (engine.mind_vram())
-                std::fprintf(stderr, "strata-poly: the card had little VRAM left: the expert cache %d -> %d experts, "
-                                     "%lld MiB free now\n",
-                             had, engine.cached_experts(), (long long) engine.vram_free_mib());
+                std::fprintf(stderr, "strata-poly: the expert cache %d -> %d experts (%.2f GiB) for the VRAM free "
+                                     "now, %lld MiB left\n",
+                             had, engine.cached_experts(), engine.cached_gib(), (long long) engine.vram_free_mib());
             r = ss.generate(
                 ids, pictures, pad, turn_at, max_new, s, lines.stop,
                 [](int32_t t) {
@@ -730,8 +730,13 @@ void usage() {
                  "usage: strata-poly --model FILE.gguf (--serve | --tokens ID,ID,... [--max-new N])\n"
                  "  --max-context N        tokens the attention caches hold (default 8192)\n"
                  "  --threads N            CPU threads for the experts that are not in VRAM (default: all usable)\n"
-                 "  --vram-reserve-mib N   VRAM left free beside the expert cache (default: a sixteenth of the\n"
-                 "                         card, 512 to 1024)\n"
+                 "  --vram-reserve-mib N   VRAM left free beside the expert cache, 256 at least (default: a\n"
+                 "                         thirty-second of the card, 256 to 768, or a sixteenth, 512 to 1024,\n"
+                 "                         when the PC's free RAM is within 4 GiB of the model's files, and then\n"
+                 "                         kept whole; else half of it after the first request)\n"
+                 "  --layer-split S        the model's layers across the CUDA devices this process sees, in their\n"
+                 "                         order: S is auto (by each card's free VRAM) or the first layer of each\n"
+                 "                         later card, as 20 or 20,30 (default: the first card alone)\n"
                  "  --expert-profile FILE  expert use counts: read to choose the cached experts, written back on\n"
                  "                         exit and by --serve after an answer, every 10 s at most\n"
                  "  --no-gpu-experts       keep every routed expert on the CPU\n"
@@ -747,7 +752,7 @@ void usage() {
                  "  --draft-model FILE     a file of the same model to take that block from, when --model has none;\n"
                  "                         for Gemma 4, its draft model (a gemma4-assistant file)\n"
                  "  --draft-vocab N        the block guesses among the vocabulary's first N tokens (default:\n"
-                 "                         131072 for Qwen3.6 and Ornith, all of it for the others; 0 = all)\n"
+                 "                         131072 for Qwen3.6, Ornith and Tiel, all of it for the others; 0 = all)\n"
                  "  --no-graphs            launch a token's kernels one by one (default: a layer's are recorded once\n"
                  "                         as a CUDA graph and replayed)\n"
                  "  --kv-whole             give the attention caches VRAM for the whole context at load (default: as\n"
@@ -759,8 +764,10 @@ void usage() {
                  "  --stage-mib N          VRAM the experts outside the cache pass through in a prompt batch (default\n"
                  "                         2048, or what a layer's experts take when that is less); with less, more\n"
                  "                         of them are copied after the layer has routed\n"
-                 "  --stage-ahead N        from N tokens, a batch copies those experts before it routes (default 256,\n"
+                 "  --stage-ahead N        from N tokens, a batch copies those experts before it routes (default 1024,\n"
                  "                         0 = never)\n"
+                 "  --cpu-share F          under that, the share of those experts the CPU computes meanwhile, the\n"
+                 "                         ones the fewest tokens chose (default: as the times say; 0 = none)\n"
                  "  --prompt-cache N       checkpoints kept of a conversation, about 150 MB of RAM each (default 6;\n"
                  "                         0 = a prompt is read from its start unless it goes on from the last token)\n"
                  "  --prompt-cache-every N a checkpoint every N prompt tokens, besides the one at a prompt's end\n"
@@ -834,10 +841,12 @@ int main(int argc, char** argv) {
         else if (a == "--draft-model") o.draft_model = val();
         else if (a == "--expert-swaps") o.expert_swaps = std::atoi(val());
         else if (a == "--tail-skip") o.tail_skip = std::atoi(val());
+        else if (a == "--layer-split") o.layer_split = val();
         else if (a == "--draft-vocab") o.draft_vocab = std::atoi(val());
         else if (a == "--prompt-batch") o.prompt_batch = std::atoi(val());
         else if (a == "--stage-mib") o.stage_mib = std::atoi(val());
         else if (a == "--stage-ahead") o.stage_ahead = std::atoi(val());
+        else if (a == "--cpu-share") o.cpu_share = (float) std::atof(val());
         else if (a == "--prompt-cache") cache.o.checkpoints = std::atoi(val());
         else if (a == "--prompt-cache-every") cache.o.every = std::atoll(val());
         else if (a == "--conversation-cache-mib") cache.o.park_mib = std::atoll(val());

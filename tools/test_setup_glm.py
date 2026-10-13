@@ -219,9 +219,9 @@ class Main(unittest.TestCase):
             dst.write_bytes(b"")
             setup.mark(dst)
 
-        def fake_build(gpu, yes, llama, vision="none"):
+        def fake_build(gpu, yes, llama, vision="none", toolkit=13):
             self.built.append(gpu["archs"])
-            self.encoder = vision
+            self.encoder, self.toolkit = vision, toolkit
             eng = self.t / setup.ENGINE_POLY_DIR
             eng.mkdir(exist_ok=True)
             (eng / "BUILD.json").write_text(json.dumps({"source": "local", "cuda_dirs": ["/cuda/lib64"]}))
@@ -387,6 +387,16 @@ class Main(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual((cfg["gpu"], cfg["gpus_asked"]), (1, True))
 
+    def test_layer_split(self):
+        code, out, cfg = self.main(["--gpus", "0,1"], n_gpus=2)
+        self.assertEqual(code, 0, out)
+        self.assertEqual((cfg["gpu"], cfg["gpus_asked"], cfg["layer_split"]), ([0, 1], True, "auto"))
+        self.assertNotIn("runs on one GPU", out)
+        code, out, cfg = self.main(["--gpus", "0,1", "--layer-split", "30"], n_gpus=2)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(cfg["layer_split"], "30")
+        self.assertNotIn("--layer-split", next((ln for ln in out.splitlines() if "not used with" in ln), ""))
+
     def test_windows_is_asked(self):
         code, out, cfg = self.main(win=True, answers={})
         self.assertNotEqual(code, 0)
@@ -394,7 +404,7 @@ class Main(unittest.TestCase):
         self.assertEqual(self.built, [])
 
     def test_windows_is_not_asked_for_a_family_that_ran_there(self):
-        for family in ("qwen36", "ornith", "gemma4"):
+        for family in ("qwen36", "ornith", "gemma4", "tiel"):
             with self.subTest(family):
                 self.built = []
                 code, out, cfg = self.main(win=True, family=family, ram=32.0, vram=8.0)
@@ -402,10 +412,16 @@ class Main(unittest.TestCase):
                 self.assertNotIn("Windows", out)
                 self.assertEqual(len(self.built), 1)
 
-    def test_cuda_12_stops(self):
+    def test_cuda_12_compiles_the_engine_with_it(self):
         code, out, cfg = self.main(["--cuda", "12"])
-        self.assertNotEqual(code, 0)
-        self.assertIn("built for RTX 20 cards and newer", out)
+        self.assertEqual(code, 0, out)
+        self.assertEqual((self.built, self.toolkit), ([["120"]], 12))
+        self.assertIn("with CUDA 12 is compiled here", out)
+        self.assertEqual(cfg["cuda"], 12)
+        # a copy set up from this install keeps it; the same one set up again chooses again
+        self.assertEqual(setup.choices_from_config(next(self.t.glob("strata-glm*.json")))["cuda"], 12)
+        code, out, cfg = self.main()
+        self.assertEqual((cfg.get("cuda"), self.toolkit), (None, 13))
 
 
 if __name__ == "__main__":

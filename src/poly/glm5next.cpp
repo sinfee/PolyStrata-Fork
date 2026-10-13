@@ -295,7 +295,9 @@ void Glm5Next::alloc_caches() {
     const size_t ring_n = (size_t) ring_ * 2 * idx_dim_;
     float* ring = (float*) dmalloc(n_dsa_ * ring_n * sizeof(float), "the indexer cache");
     float* st = state_;
-    for (Block& B : blocks_) {
+    for (int il = 0; il < (int) blocks_.size(); ++il) {
+        Block& B = blocks_[(size_t) il];
+        if (!runs(il)) continue;
         if (B.dsa) {
             B.lat = (uint16_t*) kv_alloc((size_t) kv_rank_ * sizeof(uint16_t), 1);
             B.pool = (float*) kv_alloc((size_t) idx_dim_ * sizeof(float), kpool_);
@@ -353,11 +355,11 @@ void Glm5Next::save_layer(int il, int64_t pos, uint8_t* dst) {
 }
 
 // A row: the latent the attention reads, and room for a pool's key, which the row that ends the pool has.
-size_t Glm5Next::row_bytes() const {
+size_t Glm5Next::card_row_bytes() const {
     return (size_t) n_dsa_ * ((size_t) kv_rank_ * sizeof(uint16_t) + (size_t) idx_dim_ * sizeof(float));
 }
 
-void Glm5Next::save_rows(int64_t first, int64_t n, uint8_t* dst) {
+void Glm5Next::save_card_rows(int64_t first, int64_t n, uint8_t* dst) {
     if (first < 0 || n < 0 || first + n > opt_.max_context)
         throw std::logic_error("save_rows: the rows are outside the context");
     ck(cudaStreamSynchronize(cs(st_)), "save rows");
@@ -377,7 +379,7 @@ void Glm5Next::save_rows(int64_t first, int64_t n, uint8_t* dst) {
     }
 }
 
-void Glm5Next::load_rows(const uint8_t* src, int64_t from, int64_t count, int64_t first, int64_t n) {
+void Glm5Next::load_card_rows(const uint8_t* src, int64_t from, int64_t count, int64_t first, int64_t n) {
     if (from < 0 || first < from || n < 0 || first + n > from + count || first + n > opt_.max_context)
         throw std::logic_error("load_rows: the rows are outside what was saved");
     cover(first + n);

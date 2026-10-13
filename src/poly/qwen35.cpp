@@ -121,7 +121,9 @@ void Qwen35::alloc_caches() {
     const size_t past_n = size_t(3) * conv_dim_, s_n = size_t(v_heads_) * s_dim_ * s_dim_;
     const size_t row = (size_t) n_kv_ * head_dim_ * sizeof(uint16_t);
     float* st = state_;
-    for (Block& B : blocks_) {
+    for (int il = 0; il < (int) blocks_.size(); ++il) {
+        Block& B = blocks_[(size_t) il];
+        if (!runs(il)) continue;
         if (B.gdn) {
             B.past = st;
             st += past_n;
@@ -168,15 +170,15 @@ void Qwen35::save_layer(int il, int64_t, uint8_t* dst) {
        "save state");
 }
 
-size_t Qwen35::row_bytes() const { return (size_t) n_attn_ * 2 * n_kv_ * head_dim_ * sizeof(uint16_t); }
+size_t Qwen35::card_row_bytes() const { return (size_t) n_attn_ * 2 * n_kv_ * head_dim_ * sizeof(uint16_t); }
 
-void Qwen35::save_rows(int64_t first, int64_t n, uint8_t* dst) {
+void Qwen35::save_card_rows(int64_t first, int64_t n, uint8_t* dst) {
     if (first < 0 || n < 0 || first + n > opt_.max_context)
         throw std::logic_error("save_rows: the rows are outside the context");
     ck(cudaStreamSynchronize(cs(st_)), "save rows");
     const size_t row = (size_t) n_kv_ * head_dim_ * sizeof(uint16_t), at = (size_t) first * row, bytes = (size_t) n * row;
     for (const Block& B : blocks_) {
-        if (B.gdn || bytes == 0) continue;
+        if (!B.keys || bytes == 0) continue;
         for (const uint16_t* cache : {B.keys, B.vals}) {
             ck(cudaMemcpy(dst, (const uint8_t*) cache + at, bytes, cudaMemcpyDeviceToHost), "save rows");
             dst += bytes;
@@ -184,7 +186,7 @@ void Qwen35::save_rows(int64_t first, int64_t n, uint8_t* dst) {
     }
 }
 
-void Qwen35::load_rows(const uint8_t* src, int64_t from, int64_t count, int64_t first, int64_t n) {
+void Qwen35::load_card_rows(const uint8_t* src, int64_t from, int64_t count, int64_t first, int64_t n) {
     if (from < 0 || first < from || n < 0 || first + n > from + count || first + n > opt_.max_context)
         throw std::logic_error("load_rows: the rows are outside what was saved");
     cover(first + n);
@@ -192,7 +194,7 @@ void Qwen35::load_rows(const uint8_t* src, int64_t from, int64_t count, int64_t 
     const size_t row = (size_t) n_kv_ * head_dim_ * sizeof(uint16_t), at = (size_t) first * row, bytes = (size_t) n * row;
     const size_t skip = (size_t) (first - from) * row, all = (size_t) count * row;
     for (const Block& B : blocks_) {
-        if (B.gdn || bytes == 0) continue;
+        if (!B.keys || bytes == 0) continue;
         for (uint16_t* cache : {B.keys, B.vals}) {
             ck(cudaMemcpy((uint8_t*) cache + at, src + skip, bytes, cudaMemcpyHostToDevice), "load rows");
             src += all;

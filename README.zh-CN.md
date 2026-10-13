@@ -3,9 +3,9 @@
 [English](README.md) · **简体中文** · [日本語](README.ja.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Português](README.pt-BR.md)
 
 <p align="center"><b>在你自己的电脑上运行大型 AI 模型</b><br>
-Qwen3.8-Flash-Next、GLM 5.3 Flash、Qwen3.6、Ornith 1.5 和 Gemma 4 · 免费开源</p>
+Qwen3.8-Flash-Next、GLM 5.3 Flash、Qwen3.6、Ornith 1.5、Gemma 4 和 Tiel Coder · 免费开源</p>
 
-<p align="center"><img src="docs/media/speed.svg" width="820" alt="写回答时每秒的 token 数：8 GB 显存的笔记本上 Qwen3.6-35B-A3B 为 84 到 87，RTX 5090 上为 385 到 393"></p>
+<p align="center"><img src="docs/media/speed.svg" width="820" alt="写回答时每秒的 token 数：8 GB 显存的笔记本上 Qwen3.6-35B-A3B 为 94 到 100，RTX 5090 上为 385 到 393"></p>
 
 <p align="center"><img src="docs/media/claude-code-demo.gif" width="820" alt="终端里的 Claude Code，旁边是 PolyStrata 的 API Monitor"><br>
 <sub>Claude Code 接 Qwen3.6-35B-A3B UD-Q3_K_M，在 8 GB 显卡的笔记本上，原速：给一个小程序加 <code>--json</code> 选项，写测试，跑测试。服务器启动时已经读过 Claude Code 的系统提示词（<code>"warm_start": true</code>）。</sub></p>
@@ -17,18 +17,19 @@ Qwen3.8-Flash-Next、GLM 5.3 Flash、Qwen3.6、Ornith 1.5 和 Gemma 4 · 免费�
 PolyStrata 能在普通电脑上运行通常要用服务器才能跑的大型 AI 模型。它们能聊天、写代码，还能配合你的应用和编程智能体一起工作。
 所有数据都留在你的电脑上。
 
-它能跑五个模型，用两个引擎：
+它能跑六个模型，用两个引擎：
 
 - **[Qwen3.8-Flash-Next](https://huggingface.co/Qwen/Qwen3.8-Flash-Next)**：12 GB 及以上的 NVIDIA 或 AMD 显卡，Windows 或
   Linux。它还能看图片。引擎是 Strata 项目的，没有改动。
 
-另外四个用的是为 PolyStrata 写的引擎，需要一张 NVIDIA 显卡：四个都能在 Linux 上跑，三个小的也能在 Windows 上跑。
-目前是实验性的：只在一台 32 GB 显卡的电脑上跑过，三个小的另外在一台 8 GB 显卡的笔记本上跑过。
+另外五个用的是为 PolyStrata 写的引擎，需要一张 NVIDIA 显卡，也可以用[两张](docs/MULTI_GPU.md#the-strata-poly-models)：五个都能在 Linux 上跑，四个小的也能在 Windows 上跑。
+目前是实验性的：只在一台 32 GB 显卡的电脑上跑过，四个小的另外在一台 8 GB 显卡的笔记本上跑过。
 
 - **[GLM 5.3 Flash](docs/GLM.md)**：最大的一个，文件 79 到 114 GB，大部分留在内存里。
 - **[Qwen3.6-35B-A3B](docs/BACKENDS.md)**：文件 13 到 23 GB。它还能看图片。
 - **[Ornith 1.5](docs/BACKENDS.md)**：结构和 Qwen3.6-35B-A3B 相同，权重不同，文件 14 到 24 GB。它还能看图片。
 - **[Gemma 4 26B-A4B](docs/BACKENDS.md)**：文件 11 到 17 GB。它还能看图片。
+- **[Tiel Coder 35B-A3B](docs/BACKENDS.md)**：peculiar-ragdoll 为编程智能体量化的 Ornith 1.5，文件 14 到 23 GB。它还能看图片。
 
 服务器运行时可以在已安装的模型之间切换（[做法](docs/BACKENDS.md#changing-the-model)，英文）。
 
@@ -85,7 +86,7 @@ NVIDIA：Q2_0 用的是引擎 0.1.36，其他各行用的是 0.1.26（4K 回答�
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
 | **3.0BIT** | 59-66 tokens/s | 820 tokens/s |
-| **UD-IQ2_XXS** | 47-50 tokens/s | 1,040-1,050 tokens/s |
+| **UD-IQ2_XXS** | 50-52 tokens/s | 1,060-1,080 tokens/s |
 | **REAP50-Q3_K_M** | 59-66 tokens/s | 1,300-1,310 tokens/s |
 
 </td></tr>
@@ -104,24 +105,23 @@ GLM 5.3 Flash 比其他几个模型大得多，这张卡的 32 GB 显存只放�
 
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
-| **UD-Q3_K_M** | 84-87 tokens/s | 1,500-1,620 tokens/s |
-| **UD-Q2_K_XL** | 110-111 tokens/s | 1,500-1,510 tokens/s |
-| **UD-Q4_K_M** | 79-86 tokens/s | 1,560-1,570 tokens/s |
+| **UD-Q3_K_M** | 94-100 tokens/s | 1,690 tokens/s |
+| **UD-Q2_K_XL** | 123-124 tokens/s | 1,590 tokens/s |
+| **UD-Q4_K_M** | 82-86 tokens/s | 1,560-1,570 tokens/s |
 
 </td><td>
 
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
-| **UD-Q3_K_M** | 385-393 tokens/s | 6,350-6,550 tokens/s |
-| **UD-Q2_K_XL** | 410-438 tokens/s | 5,970-6,440 tokens/s |
-| **UD-Q4_K_M** | 328-393 tokens/s | 6,230-6,580 tokens/s |
+| **UD-Q3_K_M** | 394-395 tokens/s | 6,350-6,550 tokens/s |
+| **UD-Q2_K_XL** | 450 tokens/s | 6,400-6,590 tokens/s |
+| **UD-Q4_K_M** | 363-401 tokens/s | 6,030-6,690 tokens/s |
 
 </td></tr>
 </table>
 
-10,000 个 token 的提示，笔记本每秒读 1,620 个，工作站每秒读 6,100 个。
+10,000 个 token 的提示，笔记本每秒读 1,660 个，工作站每秒读 6,300 个。
 把工作站的显卡限制到 8 GB 的那组数字是笔记本测出来之前的替身，现在放在 [docs/BACKENDS.md](docs/BACKENDS.md#with-8-gb-of-vram)（英文）里。
-笔记本的数字是关着 `--tail-skip` 测的，现在安装程序会给 Qwen3.6 打开它（见 [docs/BACKENDS.md](docs/BACKENDS.md#what-was-tuned)，英文）。
 
 ### Ornith 1.5
 
@@ -133,22 +133,22 @@ GLM 5.3 Flash 比其他几个模型大得多，这张卡的 32 GB 显存只放�
 
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
-| **APEX-I-COMPACT** | 72-76 tokens/s | 1,540 tokens/s |
-| **APEX-I-MINI** | 77-79 tokens/s | 1,470 tokens/s |
-| **APEX-I-QUALITY** | 59-63 tokens/s | 940-1,510 tokens/s |
+| **APEX-I-COMPACT** | 76-82 tokens/s | 1,620 tokens/s |
+| **APEX-I-MINI** | 80-86 tokens/s | 1,550-1,560 tokens/s |
+| **APEX-I-QUALITY** | 59-63 tokens/s | 1,570-1,580 tokens/s |
 
 </td><td>
 
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
-| **APEX-I-COMPACT** | 303-315 tokens/s | 6,080-6,360 tokens/s |
-| **APEX-I-MINI** | 289-300 tokens/s | 5,940-6,170 tokens/s |
+| **APEX-I-COMPACT** | 316-319 tokens/s | 6,830-6,860 tokens/s |
+| **APEX-I-MINI** | 289-300 tokens/s | 6,300-6,380 tokens/s |
 | **APEX-I-QUALITY** | 289-298 tokens/s | 6,040-6,390 tokens/s |
 
 </td></tr>
 </table>
 
-10,000 个 token 的提示，笔记本每秒读 1,530 个，工作站每秒读 5,600 个。
+10,000 个 token 的提示，笔记本每秒读 1,590 个，工作站每秒读 6,400 个。
 
 ### Gemma 4 26B-A4B
 
@@ -160,28 +160,57 @@ GLM 5.3 Flash 比其他几个模型大得多，这张卡的 32 GB 显存只放�
 
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
-| **UD-Q3_K_M** | 85 tokens/s | 2,100 tokens/s |
-| **UD-Q2_K_XL** | 94-95 tokens/s | 1,920-2,000 tokens/s |
-| **UD-Q4_K_M** | 74-75 tokens/s | 2,010 tokens/s |
+| **UD-Q3_K_M** | 92-93 tokens/s | 2,240 tokens/s |
+| **UD-Q2_K_XL** | 101-104 tokens/s | 2,150-2,160 tokens/s |
+| **UD-Q4_K_M** | 85 tokens/s | 2,150 tokens/s |
 
 </td><td>
 
 | 规格 | 写回答 | 读提示 |
 | --- | ---: | ---: |
-| **UD-Q3_K_M** | 326-349 tokens/s | 7,880-8,230 tokens/s |
-| **UD-Q2_K_XL** | 316-331 tokens/s | 7,120-7,860 tokens/s |
-| **UD-Q4_K_M** | 316-338 tokens/s | 7,040-8,050 tokens/s |
+| **UD-Q3_K_M** | 353-356 tokens/s | 7,880-8,230 tokens/s |
+| **UD-Q2_K_XL** | 327-340 tokens/s | 7,380-8,000 tokens/s |
+| **UD-Q4_K_M** | 335-346 tokens/s | 7,040-8,050 tokens/s |
 
 </td></tr>
 </table>
 
-10,000 个 token 的提示，笔记本每秒读 2,080 个，工作站每秒读 6,800 个。
+10,000 个 token 的提示，笔记本每秒读 2,130 个，工作站每秒读 6,800 个。
 
-用 PolyStrata 自己引擎的这四个模型，都是用它自带的跑分测的，你也可以在自己的电脑上跑：
+### Tiel Coder 35B-A3B
+
+测法相同，用的是同样的两台电脑。
+
+<table>
+<tr><th>NVIDIA：RTX 4070 Laptop（8 GB）、Core i7-14700HX、32 GB 内存</th><th>NVIDIA：RTX 5090（32 GB）、Xeon Platinum 8470Q（25 vCPU）、120 GB 内存</th></tr>
+<tr><td>
+
+| 规格 | 写回答 | 读提示 |
+| --- | ---: | ---: |
+| **UD-Q3_K_XL** | 83 tokens/s | 1,700 tokens/s |
+| **UD-IQ3_XXS** | 96-97 tokens/s | 1,610 tokens/s |
+| **UD-Q4_K_XL** | 74-79 tokens/s | 1,660-1,670 tokens/s |
+
+</td><td>
+
+| 规格 | 写回答 | 读提示 |
+| --- | ---: | ---: |
+| **UD-Q3_K_XL** | 337-345 tokens/s | 6,570-6,830 tokens/s |
+| **UD-IQ3_XXS** | 339-351 tokens/s | 6,090-6,520 tokens/s |
+| **UD-Q4_K_XL** | 316-322 tokens/s | 6,750-6,870 tokens/s |
+
+</td></tr>
+</table>
+
+10,000 个 token 的提示，笔记本每秒读 1,670 个，工作站每秒读 6,300 个。
+
+用 PolyStrata 自己引擎的这五个模型，都是用它自带的跑分测的，你也可以在自己的电脑上跑：
 `python polystrata.py benchmark --model <name> --prompt-tokens 24000`
 （[它发什么、打印什么](docs/BACKENDS.md#benchmark)，英文）。
 别人在自己的显卡上测的结果，以及怎么在你的电脑上和 llama.cpp 对比：
 [社区测试结果](docs/COMMUNITY_BENCHMARKS.md#the-models-polystrata-adds)（英文）。
+在笔记本上跑 Qwen3.6 和 Tiel Coder，PolyStrata 读提示比 llama.cpp b11540 快 2.7 到 3.5 倍，写快 1.5 到 1.8 倍
+（[两次测试](docs/COMMUNITY_BENCHMARKS.md#comparing-with-llamacpp)，英文）。
 
 ## 你需要什么
 
@@ -230,7 +259,7 @@ GLM 5.3 Flash 比其他几个模型大得多，这张卡的 32 GB 显存只放�
 
 其他的都由安装程序搞定，和 GLM 5.3 Flash 一样。在 Windows 上，安装程序直接从最新 release 下载编译好的引擎。
 如果 CPU 不支持 AVX2，或者你这份代码的引擎在那个 release 之后又改过，
-就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、多张显卡。
+就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、Windows 上用两张显卡、三张及以上显卡。
 
 ### Ornith 1.5
 
@@ -243,7 +272,7 @@ GLM 5.3 Flash 比其他几个模型大得多，这张卡的 32 GB 显存只放�
 
 其他的都由安装程序搞定，和 GLM 5.3 Flash 一样。在 Windows 上，安装程序直接从最新 release 下载编译好的引擎。
 如果 CPU 不支持 AVX2，或者你这份代码的引擎在那个 release 之后又改过，
-就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、多张显卡。
+就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、Windows 上用两张显卡、三张及以上显卡。
 
 ### Gemma 4 26B-A4B
 
@@ -256,9 +285,22 @@ GLM 5.3 Flash 比其他几个模型大得多，这张卡的 32 GB 显存只放�
 
 其他的都由安装程序搞定，和 GLM 5.3 Flash 一样。在 Windows 上，安装程序直接从最新 release 下载编译好的引擎。
 如果 CPU 不支持 AVX2，或者你这份代码的引擎在那个 release 之后又改过，
-就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、多张显卡。
+就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、Windows 上用两张显卡、三张及以上显卡。
 
-这三个模型各自需要什么、是怎么验证的：[docs/BACKENDS.md](docs/BACKENDS.md#install)（英文）。
+### Tiel Coder 35B-A3B
+
+| | |
+| --- | --- |
+| **显卡** | 一张 **NVIDIA** GeForce RTX 20 系列或更新的显卡，**8 GB 或以上显存**。放专家之前要占掉约 5 GB。在 32 GB 的卡上跑过，在把这张卡限制到 8 GB 的情况下跑过，也在笔记本的 8 GB 显卡上跑过。 |
+| **内存** | 配 8 GB 显卡，三个规格分别约需 **18、21、27 GB**，这是安装程序的估算。24 GB 的显卡三个规格的整个模型都放得下。三个规格都在一台 32 GB 内存的笔记本上跑过。 |
+| **硬盘** | 模型文件 14、17 或 23 GB，要看图片再加 1 GB。 |
+| **系统** | Linux 或 Windows 10 / 11，以及 NVIDIA 的最新显卡驱动。 |
+
+其他的都由安装程序搞定，和 GLM 5.3 Flash 一样。在 Windows 上，安装程序直接从最新 release 下载编译好的引擎。
+如果 CPU 不支持 AVX2，或者你这份代码的引擎在那个 release 之后又改过，
+就改用 Visual Studio 的 2022 编译器和 CUDA 工具包在本机编译，缺的话会问你要不要装。暂时不支持：AMD 显卡、Windows 上用两张显卡、三张及以上显卡。
+
+这四个模型各自需要什么、是怎么验证的：[docs/BACKENDS.md](docs/BACKENDS.md#install)（英文）。
 
 ## 安装
 
@@ -284,10 +326,10 @@ PolyStrata 的 [MCP 服务器](docs/MCP_SERVER.md)来安装、启动和停止 Po
 - 上下文多大（模型能记住多少文字），
 - 是否要识别图片（GLM 5.3 Flash 不支持）。
 
-每次直接按回车就是推荐选项。之后它会下载模型（Qwen3.8-Flash-Next 约 70 GB，GLM 5.3 Flash 79 到 114 GB，另外三个 11 到 24 GB）并启动。
+每次直接按回车就是推荐选项。之后它会下载模型（Qwen3.8-Flash-Next 约 70 GB，GLM 5.3 Flash 79 到 114 GB，另外四个 11 到 24 GB）并启动。
 如果下载中断了，再运行一次即可：它会从中断的地方继续。浏览器会打开 PolyStrata 应用，地址是 `http://127.0.0.1:8080`。
 
-五个模型都在安装程序的模型列表里。想直接装其中一个，运行 `./setup.sh --family glm`（或 `qwen36`、`ornith`、`gemma4`）
+六个模型都在安装程序的模型列表里。想直接装其中一个，运行 `./setup.sh --family glm`（或 `qwen36`、`ornith`、`gemma4`、`tiel`）
 （[它会问什么、写什么](docs/GLM.md#install)）。
 
 > **模型启动时，你的电脑可能会变慢或卡住 1-3 分钟**（第一次最久）。
@@ -387,9 +429,22 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 显卡越大，放得下的模型越多，需要的内存越少：UD-Q3_K_M 配 12 GB 显卡约 14 GB，整个模型都放进显卡之后是 10 GB。
 这些是安装程序的估算，还没有在这样的电脑上验证过。
 
+### Tiel Coder 35B-A3B
+
+目前有三个规格。安装程序默认选 UD-Q3_K_XL，内存不够时选 UD-IQ3_XXS；UD-Q4_K_XL 要指名：`--model UD-Q4_K_XL`。
+
+| 规格 | 是什么 | 下载 | 配 8 GB 显卡需要的内存 |
+| --- | --- | ---: | ---: |
+| **UD-Q3_K_XL** | 完整模型，专家是 3 bit 和 4 bit（[peculiar-ragdoll](https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP)） | 17 GB | 约 21 GB |
+| **UD-IQ3_XXS** | 同上，专家是 2 bit 和 3 bit：需要的内存最少 | 14 GB | 约 18 GB |
+| **UD-Q4_K_XL** | 同上，专家是 4 到 6 bit | 23 GB | 约 27 GB |
+
+显卡越大，放得下的模型越多，需要的内存越少：UD-Q3_K_XL 配 12 GB 显卡约 17 GB，配 16 GB 显卡约 13 GB，整个模型都放进显卡之后是 10 GB。
+这些是安装程序的估算，还没有在这样的电脑上验证过。
+
 ## 使用方法
 
-五个模型的用法一样：同一个应用，同一套 API。
+六个模型的用法一样：同一个应用，同一套 API。
 
 <p align="center"><img src="docs/media/runpagoda.png" width="900" alt="应用的 Monitor 标签页，旁边是一个编程智能体"><br>
 <sub>应用的 <b>Monitor</b>（左），编程智能体正在写视频里的宝塔花园（右）。截图来自 <a href="https://github.com/Niko1221/Strata">Strata</a>。</sub></p>
@@ -399,7 +454,8 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 - **你的应用和编程智能体：** 添加一个“OpenAI 兼容”的提供商，base URL 填 **`http://127.0.0.1:8080/v1`**。
   API key 和模型名随便填都行。
   - 使用 Anthropic API 的应用：`http://127.0.0.1:8080/v1/messages`（Claude Code：
-    `ANTHROPIC_BASE_URL=http://127.0.0.1:8080`）。
+    `ANTHROPIC_BASE_URL=http://127.0.0.1:8080`，并在 `strata-<model>.json` 里加 `"fit_max_tokens": true`
+    （[原因](docs/FAQ.md#can-i-use-it-with-claude-code-codex-or-other-apps)））。
   - Codex CLI 和其他使用 OpenAI Responses API 的应用：`/v1/responses`
     （[设置方法](docs/DETAILS.md#the-responses-api-and-codex-cli)）。
 - **思考：** 在聊天菜单或应用的“reasoning effort”里选择 **off、low、medium 或 high**。off 最快，
@@ -408,7 +464,7 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 
 它们不一样的地方：
 
-| | Qwen3.8-Flash-Next | GLM 5.3 Flash | Qwen3.6-35B-A3B、Ornith 1.5、Gemma 4 26B-A4B |
+| | Qwen3.8-Flash-Next | GLM 5.3 Flash | Qwen3.6-35B-A3B、Ornith 1.5、Gemma 4 26B-A4B、Tiel Coder 35B-A3B |
 | --- | --- | --- | --- |
 | **图片** | 在安装时对“Images?”选是。然后在聊天里点 **Picture**，或在你的应用里附上图片。AMD 显卡在 Linux 上通过处理器识别图片；在 Windows 上暂时还不行。 | 暂时不支持。 | 在安装时对“Images?”选是，之后和 Qwen3.8-Flash-Next 一样。显存不到 16 GB 的卡上，图片编码器在处理器上跑，一张图片要几秒。 |
 | **多个请求** | 默认一次只回答一个，其他请求排队等待。设置 `"parallel": 2` 可以同时回答多个（[BATCHING.md](docs/BATCHING.md)）；在 12 GB 显卡上，这会让每个回答变慢。 | 一次只回答一个，其他请求排队等待。 | 一次只回答一个，其他请求排队等待。 |
@@ -472,8 +528,8 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 <p align="center"><img src="docs/media/how-it-works-qwen36.svg" width="860" alt="模型的 10,240 个专家：回答反复用到的在显卡上，其余的在内存里，模型文件在 SSD 上"></p>
 
 - **这个模型是由 10,240 个小专家组成的团队**，40 层，每层 256 个。每个词只需要从每一层里用 8 个。
-- **你的显卡** 能放多少放多少：8 GB 的卡上约 2,000 个，24 GB 起就能全部放下。写回答时，引擎会把回答反复选中的专家换进显存，
-  在 8 GB 的卡上，回答用到的专家里约有 55% 由显卡提供。**你的内存** 存放其余的，**你的处理器** 同时把它们算出来。
+- **你的显卡** 能放多少放多少：8 GB 的卡上约 2,600 个，24 GB 起就能全部放下。写回答时，引擎会把回答反复选中的专家换进显存，
+  在 8 GB 的卡上，回答用到的专家里约有 60% 由显卡提供。**你的内存** 存放其余的，**你的处理器** 同时把它们算出来。
   **你的 SSD** 存放模型文件，文件原地使用，硬盘上不会多出一份副本。
 
 <p align="center"><img src="docs/media/guess-and-check-qwen36.svg" width="860" alt="模型自带的预猜模块猜测接下来的几个词；模型一次性全部检查，保留正确的"></p>
@@ -488,7 +544,7 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 <p align="center"><img src="docs/media/how-it-works-ornith.svg" width="860" alt="模型的 10,240 个专家：回答反复用到的在显卡上，其余的在内存里，模型文件在 SSD 上"></p>
 
 - **结构和 Qwen3.6-35B-A3B 相同，权重不同：** 10,240 个小专家组成的团队，40 层，每层 256 个，每个词只需要从每一层里用 8 个。
-- **你的显卡** 能放多少放多少：8 GB 的卡上约 2,500 个，24 GB 起就能全部放下。写回答时，引擎会把回答反复选中的专家换进显存，
+- **你的显卡** 能放多少放多少：8 GB 的卡上约 3,100 个，24 GB 起就能全部放下。写回答时，引擎会把回答反复选中的专家换进显存，
   在 8 GB 的卡上，回答用到的专家里约有 60% 由显卡提供。**你的内存** 存放其余的，**你的处理器** 同时把它们算出来。
   **你的 SSD** 存放模型文件，文件原地使用，硬盘上不会多出一份副本。
 
@@ -504,7 +560,7 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 <p align="center"><img src="docs/media/how-it-works-gemma4.svg" width="860" alt="模型的 3,840 个专家：回答反复用到的在显卡上，其余的在内存里，模型文件在 SSD 上"></p>
 
 - **这个模型是由 3,840 个小专家组成的团队**，30 层，每层 128 个。每个词只需要从每一层里用 8 个，另外每层还有一部分是每个词都要用的。
-- **你的显卡** 能放多少放多少：8 GB 的卡上约 640 个，按安装程序的估算 16 GB 起就能全部放下。写回答时，引擎会把回答反复选中的
+- **你的显卡** 能放多少放多少：8 GB 的卡上约 1,000 个，按安装程序的估算 16 GB 起就能全部放下。写回答时，引擎会把回答反复选中的
   专家换进显存，在 8 GB 的卡上，回答用到的专家里约有 55% 由显卡提供。**你的内存** 存放其余的，**你的处理器** 同时把它们算出来。
   **你的 SSD** 存放模型文件和它的草稿模型，都是原地使用，硬盘上不会多出一份副本。
 
@@ -516,6 +572,22 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 
 每个部分及其数据：[docs/BACKENDS.md](docs/BACKENDS.md#how-a-backend-works)（英文）。
 
+### Tiel Coder 35B-A3B
+
+<p align="center"><img src="docs/media/how-it-works-tiel.svg" width="860" alt="模型的 10,240 个专家：回答反复用到的在显卡上，其余的在内存里，模型文件在 SSD 上"></p>
+
+- **Ornith 1.5 换了一种量化：** 10,240 个小专家组成的团队，40 层，每层 256 个，每个词只需要从每一层里用 8 个。
+- **你的显卡** 能放多少放多少：8 GB 的卡上约 2,700 个，24 GB 起就能全部放下。写回答时，引擎会把回答反复选中的专家换进显存，
+  在 8 GB 的卡上，回答用到的专家里约有 50% 由显卡提供。**你的内存** 存放其余的，**你的处理器** 同时把它们算出来。
+  **你的 SSD** 存放模型文件，文件原地使用，硬盘上不会多出一份副本。
+
+<p align="center"><img src="docs/media/guess-and-check-tiel.svg" width="860" alt="模型自带的预猜模块猜测接下来的几个词；模型一次性全部检查，保留正确的"></p>
+
+- **先猜，再检查：** 它的预猜模块也在模型文件里，由它先猜接下来的几个词。它猜对的比例比 Qwen3.6-35B-A3B 的低，所以同样的答案快 1.2-1.3 倍。
+- **长文本分大块读入**（每次 1,024 个 token）。显卡放不下全部专家时，其余的专家在整段提示里只经过显卡一遍。
+
+每个部分及其数据：[docs/BACKENDS.md](docs/BACKENDS.md#how-a-backend-works)（英文）。
+
 ## 致谢与许可证
 
 Qwen3.8-Flash-Next 来自 [Qwen 团队](https://huggingface.co/Qwen/Qwen3.8-Flash-Next)，由
@@ -523,7 +595,7 @@ Qwen3.8-Flash-Next 来自 [Qwen 团队](https://huggingface.co/Qwen/Qwen3.8-Flas
 和 Unsloth 压缩。GLM 5.3 Flash 用的是
 [neuralll](https://huggingface.co/neuralll/GLM-5.3-Flash-GSQ-RCO-3.0bit-Q4Kattn-GGUF)、Unsloth 和 patrickbdevaney 的文件。
 Qwen3.6-35B-A3B 来自 Qwen 团队，Gemma 4 来自 Google，用的都是 [Unsloth](https://huggingface.co/unsloth) 的量化版本。Ornith 1.5 来自
-ornith-ai，用的是 [mudler](https://huggingface.co/mudler/Ornith-1.5-35B-A3B-APEX-MTP-GGUF) 的 APEX 量化版本。PolyStrata 基于
+ornith-ai，用的是 [mudler](https://huggingface.co/mudler/Ornith-1.5-35B-A3B-APEX-MTP-GGUF) 的 APEX 量化版本。Tiel Coder 35B-A3B 是 [peculiar-ragdoll](https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP) 量化的 Ornith 1.5，[u/Sensitive_Song4219](https://www.reddit.com/r/LocalLLM/comments/1x22inc/comment/pf3r111/) 发现它能在 PolyStrata 上跑。PolyStrata 基于
 Niko1221 和各位贡献者的 [Strata](https://github.com/Niko1221/Strata)，并使用了
 [llama.cpp / ggml](https://github.com/ggml-org/llama.cpp) 的部分代码。完整致谢：
 [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md#credits)。PolyStrata 以 [MIT 许可证](LICENSE)开源。少数部分和每个模型

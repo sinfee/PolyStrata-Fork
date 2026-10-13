@@ -417,6 +417,13 @@ class Install(FakeRoot):
         res, err = self.call("strata_install", {"model": "UD-Q3_K_M"})
         self.assertTrue(err)
         self.assertIn("give family too (qwen36 or gemma4)", res["error"])
+        res, err = self.call("strata_install", {"model": "UD-Q4_K_XL"})    # Unsloth's, as before Tiel had one
+        self.assertFalse(err, res)
+        self.assertEqual(res["plan"]["family"], "unsloth")
+        res, err = self.call("strata_install", {"family": "tiel"})
+        self.assertFalse(err, res)
+        self.assertEqual((res["plan"]["model"], res["plan"]["download_gb"], res["plan"]["ram"]),
+                         ("UD-Q3_K_XL", 17.2, "fits"))
         res, err = self.call("strata_install", {"family": "qwen", "model": "UD-Q3_K_M"})
         self.assertTrue(err)
         self.assertIn("Qwen3.8-Flash-Next has no UD-Q3_K_M", res["error"])

@@ -948,6 +948,9 @@ class OutputParser:
         # template writes it after a tool's answer), so the reply starts inside the reasoning
         self.think_open, self.think_end = ("<|channel>thought\n", "<channel|>") if call_format == "gemma" \
             else ("", THINK_END)
+        # #537 tells a quoted </think> by the line break the end has after it.  GLM's and Gemma's answers follow
+        # their end tag at once ('say "Paris."</think>Paris'), so there every end tag ends the reasoning
+        self.quotes_end = call_format == "function"
         # the reply may still start with think_open.  Asked not to think, Gemma can still open with a thought
         # (an empty one, after a tool's answer): it is read either way
         self.opening = bool(self.think_open) and not opened
@@ -1295,7 +1298,7 @@ class OutputParser:
                         out.append(Event("reasoning", self._track(self.buf[:len(self.buf) - keep])))
                         self.buf = self.buf[len(self.buf) - keep:]
                     return out
-                quoted = self._quoted_think_end(i)
+                quoted = self._quoted_think_end(i) if self.quotes_end else False
                 if quoted is None:                   # held like a partial tag until the character after it is here
                     if i:
                         out.append(Event("reasoning", self._track(self.buf[:i])))

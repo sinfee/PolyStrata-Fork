@@ -81,6 +81,7 @@ HF_REVISIONS = {
     "unsloth/Qwen3.6-35B-A3B-MTP-GGUF": "5bc3e238d916f48a861bac2f8a1990a0e9b7e98d",                    # 2026-10-05
     "mudler/Ornith-1.5-35B-A3B-APEX-MTP-GGUF": "4c326713c52d13fdb40983a2a09a46cca8e88739",             # 2026-10-05
     "unsloth/gemma-4-26B-A4B-it-GGUF": "c099eb48e663fd284577b04978a94ffccb261841",                     # 2026-10-05
+    "peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP": "bbe9e566f39e4fc9652ac66b71968289a03c520a",        # 2026-09-10
 }
 
 
@@ -254,7 +255,7 @@ MODELS = {
                "file": "GLM-5.3-Flash-GSQ-RCO-3.0bit-q4kattn.gguf"},
     # Unsloth's UD-IQ2_XXS: the whole model again, in the numbered files of a split GGUF.  Its experts are i-quants,
     # which go through the card faster and through the CPU more slowly than 3.0BIT's K-quants: on the 32 GB card
-    # it reads a 28K prompt at 1,020 tokens/s (3.0BIT: 784) and writes 40-44 tokens/s (57-59)
+    # it reads a 29K prompt at 1,060-1,080 tokens/s (3.0BIT: 820) and writes 50-52 tokens/s (59-66)
     "UD-IQ2_XXS": {"about": "the whole model at about 2 bits (Unsloth): less RAM, reads faster, writes slower",
                    "download_gb": 101.8, "ram_gb": 82, "arena_gb": 92.5, "families": ("glm",), "shards": 4,
                    "file": "GLM-5.3-Flash-UD-IQ2_XXS-0000{i}-of-00004.gguf", "vram_beside_gb": 12.5,
@@ -452,6 +453,32 @@ FAMILIES = {
                           (461766816, "6326fb9f5e487aa8dcdd313a091e3c67724cb2a666ec3b7d2895b5b26d93ed1b"),
                           "mmproj-F16.gguf":
                           (1193058784, "418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f")}},
+    "tiel": {"title": "Tiel Coder 35B-A3B", "by": "peculiar-ragdoll, from ornith-ai's Ornith 1.5",
+             "about": "Ornith 1.5 quantized for coding, with the Sharp chat template; a 17 GB file, ~21 GB of RAM "
+                      "beside an 8 GB card; a smaller and a larger size too",
+             "hf": hf("peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP"), "file": "Tiel-Coder-35B-A3B-MTP-{q}.gguf",
+             "shards": 1, "tag": "tiel-", "name": "tiel-coder-35b-a3b", "engine": "poly", "vision": True,
+             "experimental": True, "windows": True, "ran_on_gb": 8, "row_bytes": 26624,
+             "mmproj_hf": hf("peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP"), "mmproj": "mmproj-BF16.gguf",
+             "vision_gb": 0.9, "vision_vram_gb": 1.6,
+             "models": {"UD-Q3_K_XL": {"about": "3-bit i-quant experts, 4-bit where they write; its draft block in "
+                                                "the file",
+                                       "download_gb": 17.2, "ram_gb": 21, "arena_gb": 14.6,
+                                       "vram_beside_gb": 4.7, "draft": "own"},
+                        "UD-IQ3_XXS": {"about": "2-bit i-quant experts, 3-bit where they write: the least RAM",
+                                       "download_gb": 13.6, "ram_gb": 18, "arena_gb": 11.5,
+                                       "vram_beside_gb": 4.4, "draft": "own"},
+                        "UD-Q4_K_XL": {"about": "4-bit experts, 5- and 6-bit where they write",
+                                       "download_gb": 22.7, "ram_gb": 27, "arena_gb": 20.0,
+                                       "vram_beside_gb": 4.8, "draft": "own"}},
+             "sha256": {"Tiel-Coder-35B-A3B-MTP-UD-Q3_K_XL.gguf":
+                        (17234935648, "46b8fbeba6e888c9a101e49cc717baa9bb8dfa0d203ec7b3185288159543ec14"),
+                        "Tiel-Coder-35B-A3B-MTP-UD-IQ3_XXS.gguf":
+                        (13600579424, "a4d8ffc7f030466c67db289543871a8f9e6d5340241b300c09fbaf16642273ca"),
+                        "Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf":
+                        (22749880160, "54f46c4ce544c225122b0f066c2336f10404be7bc53b0cc94d1dbbc5e826bdc1"),
+                        "mmproj-BF16.gguf":
+                        (902822016, "d9ce31026d1cb1f3f8d5152e2e2a014d9d2b302b6c93a7dc07bb0a0487f52837")}},
 }
 MMPROJ = "mmproj-Qwen3.8-Flash-Next-BF16.gguf"
 # EXPERIMENTAL, off by default (setup asks): a control vector shipped with the repository, see its README
@@ -1152,7 +1179,7 @@ def named_gpus(gpu, gpus) -> list:
         return []
 
 
-def cuda_choice(archs, cuda=None):
+def cuda_choice(archs, cuda=None, poly=False):
     """The CUDA toolkit of one model's engine: (12 or 13, why).  13 (the ready-made engine) unless a card is older
     than CUDA 13 supports (Pascal / Volta: CUDA 13 cannot compile for them) - one engine runs per model, so its oldest
     card decides.  `cuda` (--cuda 12|13) overrides it; setup recommends, it does not refuse (the caller warns)."""
@@ -1161,9 +1188,10 @@ def cuda_choice(archs, cuda=None):
     if str(cuda) == "13":
         return 13, ("--cuda 13 (as you chose)" + (f"; CUDA 13 has no code for sm_{old[0]}: the engine will not run "
                                                    "on that card" if old else ""))
-    if str(cuda) == "12":
+    if str(cuda) == "12":                              # #220 is the Qwen engine's prompt path, not strata-poly's
+        crashed = archs and archs[-1] >= 120 and not poly
         return 12, "--cuda 12 (as you chose" + ("; RTX 50 (sm_120) engines built with CUDA 12.8 crashed on long "
-                                                  "prompts, #220" if archs and archs[-1] >= 120 else "") + ")"
+                                                  "prompts, #220" if crashed else "") + ")"
     if old:
         return 12, (f"sm_{old[0]} is older than CUDA 13 supports (it dropped Pascal and Volta): this model runs the "
                     "experimental CUDA 12 engine")
@@ -3432,7 +3460,7 @@ def install_build_tools(gpu, yes):
     # experimental CUDA 12 engine for any cards (--cuda 12, docs/OLDER_GPUS.md)
     old = int(gpu.get("toolkit") or (12 if min(archs) < CUDA13_MIN_ARCH else 13)) == 12
     need12 = (12, 8) if max(archs) >= 120 else (12, 0)     # sm_120 needs CUDA 12.8 or newer
-    if old and max(archs) >= 120:
+    if old and max(archs) >= 120 and "need_cuda" not in gpu:   # #220 is the Qwen engine's prompt path
         warn("an RTX 50 card (sm_120) in a CUDA 12 engine: engines built with CUDA 12.8 crashed on long prompts there "
              "(#220, #224); the RTX 50 card alone (--gpu N) runs the ready-made CUDA 13 engine")
     nvcc, cuda_v = find_nvcc(below=(13, 0)) if old else find_nvcc()
@@ -4087,7 +4115,7 @@ def write_config(path: Path, cfg: dict):
 # "sampling" or "mcp_servers" block, "allowed_hosts", "cors_origins", "open_browser" - and is kept when setup runs again
 SETUP_KEYS = frozenset({"exe", "args", "cwd", "tokenizer", "model_name", "log", "lib_dirs", "port", "backend", "env",
                         "gpu", "gpus_asked", "layer_split", "host", "api_key", "draft_vocab", "vision",
-                        "display_name"})
+                        "display_name", "cuda"})
 SETUP_ENV = frozenset({"STRATA_HIPBLASLT_TUNING", "STRATA_RESIDENT_PIN", "STRATA_NO_ARENA_THP"})   # the "env" entries setup writes
 SETUP_VISION = frozenset({"exe", "mmproj", "model", "gpu", "max_tokens", "threads"})
 
@@ -4505,11 +4533,10 @@ def start(cfg_path: Path, port: int | None, gpu: int | list | None = None, open_
     missing = [p for p in [cfg["exe"], *[a for a in cfg["args"] if a.endswith(".gguf")]] if not Path(p).exists()]
     if missing:
         fail(f"{cfg_path.name} refers to missing files: {missing[0]}", "run it again with --setup to repair")
-    glm = poly_config(cfg)                              # a model of strata-poly: one card, an engine compiled here
+    glm = poly_config(cfg)                              # a model of strata-poly: its own engine (engine-poly/)
     if glm:
-        if isinstance(gpu, list):
-            warn(f"{cfg.get('model_name', 'this model')} runs on one GPU: GPU {gpu[0]} alone")
-            gpu = gpu[0]
+        if isinstance(gpu, list):                      # update_poly_engine() wants code for these cards
+            cfg["gpu"] = gpu
         update_poly_engine(cfg, yes, cfg_path)
         poly_tail_skip(cfg, cfg_path)
     keep = {k: v for k, v in (keep or {}).items() if v is not None}
@@ -4592,7 +4619,8 @@ def start(cfg_path: Path, port: int | None, gpu: int | list | None = None, open_
     elif isinstance(use, list):
         check_gpus(use, found, "(chosen for this model) ", yes=True, named=True)
         byid = {g["index"]: g for g in found}
-        cfg = ensure_engine_for([byid[i] for i in use], cfg_path, cfg, yes)
+        if not glm:
+            cfg = ensure_engine_for([byid[i] for i in use], cfg_path, cfg, yes)
         ok("GPUs: " + " + ".join(gpu_name(byid[i]) for i in use) + f" together (layers split {cfg.get('layer_split') or 'auto'})")
     elif found:
         g = next((x for x in found if x["index"] == use), None) if use is not None else max(
@@ -5068,7 +5096,7 @@ def get_poly_prebuilt(gpu) -> bool:
     """The ready-made strata-poly and image encoder of this checkout's source in engine-poly/, with NVIDIA's CUDA 13
     libraries from pip.  False when the release has none for this source or this GPU, off Windows, with a driver
     older than CUDA 13's or a CPU without AVX2.  An engine already there for this source and GPU is kept, ready-made
-    or compiled."""
+    or compiled, unless it was compiled with CUDA 12."""
     eng = ROOT / ENGINE_POLY_DIR
     stamp = eng / "BUILD.json"
     meta = json.loads(stamp.read_text()) if stamp.exists() else {}
@@ -5076,7 +5104,7 @@ def get_poly_prebuilt(gpu) -> bool:
     cards = {int(x) for x in gpu.get("archs", [gpu["arch"]])}
     # a ready-made one came with its encoder, which is out of date when tools/vision changed
     if meta.get("src") == src and (eng / POLY_EXE).exists() and cards <= {int(x) for x in meta.get("archs", [])} \
-            and (meta.get("source") != "release" or meta.get("vision_src") == vsrc):
+            and (meta.get("source") != "release" or meta.get("vision_src") == vsrc) and meta.get("toolkit", 13) == 13:
         return True
     if not WIN or not POLY_PREBUILT_URL or driver_major(gpu) < MIN_DRIVER or cpu_floor(cpu_info()[1]):
         return False
@@ -5123,10 +5151,12 @@ def get_poly_prebuilt(gpu) -> bool:
     return True
 
 
-def build_engine_poly(gpu, yes, llama, vision="none") -> Path:
+def build_engine_poly(gpu, yes, llama, vision="none", toolkit=13) -> Path:
     """Compile strata-poly for this GPU and, for images, the encoder beside it ("gpu": with CUDA, "cpu": without);
     the results go to engine-poly/.  Each is compiled again when its source changed (a `git pull`); the engine also
-    when the card is one it has no code for, and the encoder when it is wanted on the GPU and was built without."""
+    when the card is one it has no code for, and the encoder when it is wanted on the GPU and was built without.
+    toolkit 12 (--cuda 12): with a CUDA 12.x toolkit, for a driver older than CUDA 13's or a Pascal / Volta card;
+    both are compiled again when the ones there were built with the other toolkit."""
     eng = ROOT / ENGINE_POLY_DIR
     eng.mkdir(exist_ok=True)
     stamp = eng / "BUILD.json"
@@ -5134,31 +5164,35 @@ def build_engine_poly(gpu, yes, llama, vision="none") -> Path:
     src, vsrc = source_hash(ENGINE_SOURCES), source_hash(VISION_SOURCES)
     cards = {int(x) for x in gpu.get("archs", [gpu["arch"]])}
     built = {int(x) for x in meta.get("archs", [])}
+    same = int(meta.get("toolkit", 13)) == toolkit
     # one compiled here keeps the cards it was built for; one in place of a ready-made engine is for these cards
     release = meta.get("source") == "release"
-    archs = sorted(cards if release else built | cards)
+    archs = sorted(cards if release or not same else built | cards)
     have = (eng / POLY_EXE).exists()
-    engine_ok = have and meta.get("src") == src and (cards <= built if release else set(archs) == built)
+    engine_ok = have and same and meta.get("src") == src and (cards <= built if release else set(archs) == built)
     # an encoder built with CUDA also runs on the CPU, so the one there is kept unless the GPU is asked of a CPU one
     was = meta.get("vision") or "none"
     vision_ok = vision == "none" or ((eng / VEXE).exists() and meta.get("vision_src") == vsrc and
-                                     (was == "gpu" or vision == "cpu"))
+                                     (was == "gpu" and same or was == "cpu" and vision == "cpu"))
     if engine_ok and vision_ok:
         ok(f"strata-poly already {'downloaded' if release else 'built'} for this PC")
         return eng
     # CUDA 12.8 is the toolkit it was written and measured with, on an RTX 5090: the Qwen engine's reason to want 13.0
     # there (#220, its prompt path) is not this engine's
-    nvcc, vcvars = install_build_tools({**gpu, "archs": archs, "toolkit": 13,
+    nvcc, vcvars = install_build_tools({**gpu, "archs": archs, "toolkit": toolkit,
                                         "need_cuda": (12, 8) if max(archs) >= 120 else (12, 0)}, yes)
     cuda_archs = ";".join(str(x) for x in archs)
     if not engine_ok:
         say("  strata-poly's source changed: compiling it again (only what changed, a few minutes) ..."
-            if have and set(archs) == built else
+            if have and same and set(archs) == built else
             "  Compiling the strata-poly engine for your GPU (some minutes, once) ...")
-        bdir = ROOT / "build-poly"
-        cmake_build(ROOT, bdir, "strata-poly",
-                    ["-DSTRATA_ENABLE_CUDA=ON", "-DSTRATA_BUILD_TESTS=OFF", f"-DCMAKE_CUDA_ARCHITECTURES={cuda_archs}",
-                     f"-DCMAKE_CUDA_COMPILER={nvcc}", f"-DSTRATA_GGML_DIR={llama}"], vcvars, "build-strata-poly.bat")
+        # a folder per toolkit: CMake does not take another compiler into a folder configured with one
+        bdir = ROOT / ("build-poly" if toolkit == 13 else "build-poly-cuda12")
+        defs = ["-DSTRATA_ENABLE_CUDA=ON", "-DSTRATA_BUILD_TESTS=OFF", f"-DCMAKE_CUDA_ARCHITECTURES={cuda_archs}",
+                f"-DCMAKE_CUDA_COMPILER={nvcc}", f"-DSTRATA_GGML_DIR={llama}"]
+        if min(archs) < CUDA13_MIN_ARCH:
+            defs.append("-DSTRATA_EXPERIMENTAL_SM60=ON")
+        cmake_build(ROOT, bdir, "strata-poly", defs, vcvars, "build-strata-poly.bat")
         shutil.copy2(bdir / POLY_EXE, eng / POLY_EXE)
     if not vision_ok:
         say("  Compiling the image encoder" + (" with CUDA (10-20 minutes, once) ..." if vision == "gpu" else " ..."))
@@ -5166,15 +5200,17 @@ def build_engine_poly(gpu, yes, llama, vision="none") -> Path:
         if vision == "gpu":
             defs += [f"-DCMAKE_CUDA_ARCHITECTURES={cuda_archs}", f"-DCMAKE_CUDA_COMPILER={nvcc}"]
         # its own build folder: the Qwen engine's encoder may be built for another toolkit in build-vision/
-        cmake_build(ROOT / "tools" / "vision", ROOT / "build-vision-poly", "strata-vision", defs, vcvars,
-                    "build-vision-poly.bat")
-        shutil.copy2(ROOT / "build-vision-poly" / "bin" / VEXE, eng / VEXE)
+        vdir = ROOT / ("build-vision-poly" if toolkit == 13 else "build-vision-poly-cuda12")
+        cmake_build(ROOT / "tools" / "vision", vdir, "strata-vision", defs, vcvars, "build-vision-poly.bat")
+        shutil.copy2(vdir / "bin" / VEXE, eng / VEXE)
         was, meta = vision, {**meta, "vision_src": vsrc}
     bindir = Path(nvcc).parent                            # the toolkit's own libraries (bin, bin/x64, lib64)
     dirs = [str(x) for x in (bindir, bindir / "x64", bindir.parent / "lib64") if x.is_dir()]
-    dirs += [d for d in cuda_lib_dirs(13) if d not in dirs]   # pip's, for a ready-made encoder kept beside it
+    if toolkit == 13:                                     # pip's, for a ready-made encoder kept beside it
+        dirs += [d for d in cuda_lib_dirs(13) if d not in dirs]
     stamp.write_text(json.dumps({"source": "local", "version": source_version(), "archs": archs, "cuda_dirs": dirs,
-                                 "src": src, "vision": was, "vision_src": meta.get("vision_src")}, indent=1))
+                                 "toolkit": toolkit, "src": src, "vision": was, "vision_src": meta.get("vision_src")},
+                                indent=1))
     ok(f"strata-poly compiled: {eng / POLY_EXE}" + (f", image encoder: {eng / VEXE}" if vision != "none" else ""))
     return eng
 
@@ -5195,14 +5231,16 @@ def update_poly_engine(cfg: dict, yes=False, cfg_path: Path | None = None) -> No
         return
     try:
         meta = json.loads(stamp.read_text()) if stamp.exists() else {}
-        gpu = gpu_info(cfg["gpu"] if isinstance(cfg.get("gpu"), int) else None)
+        picks = cfg["gpu"] if isinstance(cfg.get("gpu"), list) else [cfg["gpu"] if isinstance(cfg.get("gpu"), int) else None]
+        gpu = gpu_info(picks[0])
         if gpu is None:
             raise RuntimeError("no NVIDIA GPU found")
+        gpu["archs"] = sorted({int(gpu_info(i)["arch"]) for i in picks})   # a layer split's cards
         # the encoder too, when this model has one: on the device it was built for
         vis = cfg.get("vision")
         vision = ("gpu" if meta.get("vision") == "gpu" or vis.get("gpu") else "cpu") if isinstance(vis, dict) else "none"
         changed = renamed
-        fits = int(gpu["arch"]) in [int(x) for x in meta.get("archs", [])]
+        fits = set(gpu["archs"]) <= {int(x) for x in meta.get("archs", [])}
         if not (meta.get("src") == source_hash(ENGINE_SOURCES) and (eng / POLY_EXE).exists() and fits
                 and (vision == "none" or meta.get("vision_src") == source_hash(VISION_SOURCES))):
             # one compiled here (--build, a CPU without AVX2) stays so
@@ -5210,7 +5248,7 @@ def update_poly_engine(cfg: dict, yes=False, cfg_path: Path | None = None) -> No
                 warn("the latest release has no ready-made strata-poly of this source: the one installed starts "
                      "(START-HERE.bat --setup --build compiles this source)")
                 return
-            build_engine_poly(gpu, yes, get_llama_cpp(), vision)
+            build_engine_poly(gpu, yes, get_llama_cpp(), vision, int(meta.get("toolkit", 13)))
             # a ready-made engine loads CUDA from pip, one compiled here from the toolkit it was compiled with
             cfg["lib_dirs"], changed = engine_lib_dirs(eng), True
         if changed:
@@ -5248,15 +5286,12 @@ def poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, 
         fail(f"{title} runs on NVIDIA cards only: its engine is a CUDA program",
              "choose another model for the AMD card")
     if cuda_tk == 12:
-        fail(f"{title}'s engine is built for RTX 20 cards and newer: there is none for Pascal / Volta cards or "
-             "--cuda 12",
-             "use an RTX 20 card or newer, without --cuda 12")
+        warn(f"{title}'s engine with CUDA 12 is compiled here (the ready-made one is CUDA 13)" +
+             (": on Pascal / Volta it is untested" if int(gpu["arch"]) < CUDA13_MIN_ARCH else ""))
     if WIN and not fam.get("windows"):
         confirm_risk(f"{title} has been run on Linux only: its engine compiles on Windows, the model was not tried "
                      "there", bool(a.family), a.yes, f"{title} has not been tried on Windows",
                      f"use Linux, or --family {family} --yes to try it here")
-    if multi:
-        warn(f"{title} runs on one GPU: {gpu_name(gpu)} alone")
     sees = fam.get("vision") is True
     unused = [flag for flag, given in (
         ("--vision", not sees and a.vision not in (None, "no", "none")),
@@ -5264,7 +5299,7 @@ def poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, 
         ("--kv", a.kv), ("--kv-streaming", a.kv_streaming != "auto"), ("--rope-scaling", a.rope_scaling),
         ("--rope-scale", a.rope_scale is not None), ("--low-ram", a.low_ram != "auto"),
         ("--resident-budget-gib", a.resident_budget_gib is not None), ("--parallel", a.parallel is not None),
-        ("--draft-vocab", a.draft_vocab), ("--layer-split", a.layer_split), ("--calibrate", a.calibrate),
+        ("--draft-vocab", a.draft_vocab), ("--layer-split", a.layer_split and not multi), ("--calibrate", a.calibrate),
         ("--experimental-speed-projection",
          (a.experimental_speed_projection or "off").strip().lower() not in ("off", "no", "n", "0"))) if given]
     if unused:
@@ -5275,6 +5310,8 @@ def poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, 
     if a.model and a.model not in names:
         fail(f"{title} has no {a.model} model file", "choose one of: " + ", ".join(names))
     vram = gpu["vram_gb"]
+    if multi:   # each card has its layers' dense weights; its own scratch and staging buffer cost ~2 GB a card more
+        vram = sum(gpu_info(i)["vram_gb"] for i in multi) - 2.0 * (len(multi) - 1)
     model = a.model or poly_default(sizes, ram, vram)
     if not a.model and len(names) > 1:
         say()
@@ -5307,7 +5344,8 @@ def poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, 
     held, need_ram = poly_held_gb(d, room), poly_ram_need(d, room)
     say()
     say(f"  {model}: {d['about']}; download {d['download_gb']:.0f} GB. The file is read in place: about {held:.0f} of")
-    say(f"  its {d['arena_gb']:.0f} GB of experts fit this card, the rest stay in RAM (the OS file cache).")
+    say(f"  its {d['arena_gb']:.0f} GB of experts fit {'these cards' if multi else 'this card'}, the rest stay in RAM "
+        "(the OS file cache).")
     if room < beside + 2:
         enc = vision == "gpu"                          # the encoder's share may be what does not fit
         confirm_risk(f"{title} takes about {beside} GB of VRAM before any expert (measured on a 32 GB "
@@ -5411,9 +5449,9 @@ def poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, 
     step(4, "the strata-poly engine")
     llama = get_llama_cpp()
     ok(f"llama.cpp {LLAMA_CPP_COMMIT[:7]} (gguf-py, ggml)")
-    if not a.build:
+    if not a.build and cuda_tk != 12:
         get_poly_prebuilt(gpu)
-    eng = build_engine_poly(gpu, a.yes, llama, vision)
+    eng = build_engine_poly(gpu, a.yes, llama, vision, cuda_tk)
     lib_dirs = engine_lib_dirs(eng)
     ok(f"engine: {eng / POLY_EXE}")
 
@@ -5494,9 +5532,15 @@ def poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, 
     cfg = {"exe": str(eng / POLY_EXE), "args": args, "cwd": str(ROOT), "tokenizer": str(pack / "tokenizer"),
            "model_name": f"{fam['name']}-{model.lower()}", "display_name": f"{title} {model}",
            "log": str(ROOT / f"strata-{tag.lower()}.log"), "lib_dirs": lib_dirs, "port": port}
-    if gpu["count"] > 1 or a.gpu is not None:
+    if multi:                                          # the server passes --layer-split and orders the cards
+        cfg["gpu"], cfg["gpus_asked"] = multi, True
+        cfg["layer_split"] = a.layer_split or "auto"
+        ok(f"layer split across GPUs {multi} ({cfg['layer_split']})")
+    elif gpu["count"] > 1 or a.gpu is not None:
         cfg["gpu"] = gpu["index"]                      # the engine is told this card (issue #51)
         cfg["gpus_asked"] = True
+    if cuda_tk == 12:
+        cfg["cuda"] = 12                               # a copy set up from this install takes it too
     if a.host:
         cfg["host"] = a.host
     if a.api_key:
@@ -5864,7 +5908,8 @@ def main() -> int:
         if multi:
             ok("GPUs: " + " + ".join(gpu_name(x) for x in chosen) + " together (the model's layers are split across them)")
         ok(f"GPU: {gpu['name']}, {gpu['vram_gb']:.1f} GB VRAM, compute capability {cc(gpu)}, driver {gpu['driver']}")
-        cuda_tk, why = cuda_choice(gpu["archs"], a.cuda)   # one engine per model: its oldest card decides
+        # one engine per model: its oldest card decides
+        cuda_tk, why = cuda_choice(gpu["archs"], a.cuda, FAMILIES.get(a.family, {}).get("engine") == "poly")
         if why:
             (warn if cuda_tk == 13 or str(a.cuda) == "12" else ok)(f"CUDA {cuda_tk}: {why}")
         min_driver = CUDA12_MIN_DRIVER if cuda_tk == 12 else MIN_DRIVER
@@ -5973,7 +6018,7 @@ def main() -> int:
     if fam.get("license"):
         say(f"  Its license: {fam['license']}")
     if fam.get("engine") == "poly":                     # another engine: its own questions and steps
-        return poly_setup(a, family, gpu, hip, cuda_tk, bool(multi), ram, data, elsewhere, port, adopted)
+        return poly_setup(a, family, gpu, hip, cuda_tk, multi, ram, data, elsewhere, port, adopted)
     say()
     names = [m for m in MODELS if family in MODELS[m].get("families", ("qwen", "swift"))]
     names.sort(key=lambda m: bool(MODELS[m].get("experimental")))   # an experimental size last, never the default

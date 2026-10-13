@@ -1432,7 +1432,10 @@ void* blas_create(void* stream) {
     // would wait for it.  A product that fails here fails again where its status is read.
     const int n = 16;
     void* p = nullptr;
-    if (cudaMalloc(&p, n * n * (2 * sizeof(half) + sizeof(float))) != cudaSuccess) return h;
+    if (cudaMalloc(&p, n * n * (2 * sizeof(half) + sizeof(float))) != cudaSuccess) {
+        cudaGetLastError();   // or the next launch's check reports it
+        return h;
+    }
     cudaMemsetAsync(p, 0, n * n * (2 * sizeof(half) + sizeof(float)), cs(stream));
     const float one = 1.0f, zero = 0.0f;
     const half* a = (const half*) p;

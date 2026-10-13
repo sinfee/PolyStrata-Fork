@@ -836,6 +836,15 @@ class StrataEngine:
                         "line: " + line.strip() + " - please report it at github.com/VecSzn/PolyStrata/issues.")
         proc = self.proc                                 # None while a restart has not started the next one yet
         rc = proc.poll() if proc is not None else None
+        # Linux ends a program short of RAM with SIGKILL; any other signal is a crash or another program's doing
+        if rc is not None and rc < 0 and -rc != getattr(signal, "SIGKILL", 9):
+            try:
+                sig = signal.Signals(-rc).name
+            except ValueError:
+                sig = f"signal {-rc}"
+            line = next((x.strip() for x in reversed(tail.splitlines()) if x.strip()), "(none)")
+            return (f"The engine was ended by {sig}: a crash, or a signal from another program. Its last log line: "
+                    f"{line} - please report it at github.com/VecSzn/PolyStrata/issues with the log.")
         if rc is not None and rc >= 0 and self.last_err:  # its own last words on stdout: they say why
             return (f"The engine exited (code {rc}) after it reported: {self.last_err} - please report it at "
                     "github.com/VecSzn/PolyStrata/issues with the log.")
@@ -3557,6 +3566,8 @@ class Service:
         thinking) is rendered as a default one up to the answer - the same prompt start, so the conversation cache
         keeps it - and its effort follows in a short system turn right before the answer (thinking off: the template's
         empty thinking block).  The engine (--tail-role-token) checkpoints in front of that turn."""
+        if not messages:                               # Qwen's template says so; Gemma 4's and GLM's render a prompt
+            raise ValueError("No messages provided.")
         effort = kwargs.get("reasoning_effort")
         off = kwargs.get("enable_thinking") is False
         # said either way: Gemma's template thinks only when told to, the others unless told not to

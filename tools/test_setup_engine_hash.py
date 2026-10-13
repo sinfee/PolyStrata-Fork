@@ -295,6 +295,12 @@ class WhatARefusalDoesToTheCaller(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         (Path(self.tmp.name) / "engine").mkdir(parents=True, exist_ok=True)
+        # engine/ is the temporary one, and the HEAD request that finds the asset published always succeeds
+        eng = Path(self.tmp.name) / "engine"
+        for p in (mock.patch.object(setup, "engine_dir", lambda toolkit=13: eng),
+                  mock.patch.object(setup.urllib.request, "urlopen", return_value=mock.MagicMock())):
+            p.start()
+            self.addCleanup(p.stop)
 
     def fake_download(self, url, dst, what=None):
         with zipfile.ZipFile(dst, "w") as z:
