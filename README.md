@@ -352,6 +352,8 @@ straight to one ([what it asks and writes](docs/GLM.md#install)).
 its window to stop the model. `UPDATE.bat` (`./update.sh`) updates PolyStrata without starting it. Updating, Docker,
 several cards, where the files go and every option: [docs/INSTALL.md](docs/INSTALL.md).
 
+**Is it fast on your PC?** Run `BENCH.bat` (`./bench.sh`): about 5-10 minutes, it measures chat, 4K/16K prompts and an agent-style session with your own settings and writes a report to share ([how](docs/COMMUNITY_BENCHMARKS.md#run-the-benchmark)).
+
 ## Which model should I pick?
 
 ### Qwen3.8-Flash-Next
