@@ -3010,6 +3010,7 @@ class Service:
         # the token the template writes before that one, if it writes one; the tokens to put around the rows, if
         # the template leaves that to the program
         self.image_marks = ("<|image|>", None, ("<|image>", "<image|>")) if self.call_format == "gemma" else \
+            ("<|image|>", "<|begin_of_image|>", None) if self.call_format == "glm" else \
             (IMAGE_PAD, VISION_START, None)
 
     def loaded(self) -> bool:
