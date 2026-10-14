@@ -1313,6 +1313,8 @@ void Engine::load(const Options& o) {
     if (opt_.max_context < 16) throw std::runtime_error("the context must be at least 16 tokens");
     if (opt_.prompt_batch < 1 || opt_.prompt_batch > 4096)
         throw std::runtime_error("a prompt batch is 1 to 4096 tokens");
+    if (opt_.read_buffer_mib < 1 || opt_.read_buffer_mib > 16384)
+        throw std::runtime_error("the read buffer must be 1 to 16384 MiB");
     if (opt_.stage_mib < 1) throw std::runtime_error("the staging buffer must be at least 1 MiB");
     if (opt_.stage_ahead < 0) throw std::runtime_error("the batch size to stage ahead from cannot be negative");
     if (opt_.expert_swaps < 0 || opt_.expert_swaps > 64)
@@ -1488,7 +1490,9 @@ void Engine::shared_scratch() {
 void Engine::alloc() {
     // --dump-layers prints one token's stages
     rows_ = opt_.dump ? 1 : std::min(opt_.prompt_batch, opt_.max_context);
-    const size_t most = std::min<size_t>(kReadBytes / ((size_t) streams() * n_embd_ * sizeof(float)), opt_.max_context);
+    // 默认预算保持旧路径；增大预算让长文少走几轮专家搬运，额外状态只留在主存。
+    const size_t read_bytes = (size_t) opt_.read_buffer_mib << 20;
+    const size_t most = std::min<size_t>(read_bytes / ((size_t) streams() * n_embd_ * sizeof(float)), opt_.max_context);
     read_rows_ = rows_ < kStageRows ? rows_ : std::max(rows_, (int) most / rows_ * rows_);
     rec_n_ = recurrent_floats();
     state_n_ = rec_n_ + (draft_ ? (size_t) n_embd_ : 0);

@@ -11,3 +11,5 @@
 CUDA 构建使用 VS 2022 Professional/MSVC 14.44、CUDA 13.4、sm_120，以及上游固定 ggml 修订 `3cf03257f219afbe7334045ff7c6a06ac68c627d`。CPU 专家线程池的 4000 项检查通过。API 与 GLM 安装流程的测试、模型实测和限制详见工作区的 `ai-stack/POLYSTRATA-LOCAL-GLM.md`。本次没有构建 HIP、SYCL、Metal 后端。
 
 GLM 的生产源码和程序应独立于主 Strata 发布目录。不要用主 Strata 的 Python 服务端启动旧 PolyStrata 引擎；它会向 GLM 引擎添加不支持的 `--vision` 参数。
+
+后续本地优化增加 `--read-buffer-mib`：默认保持原有 512 MiB 主存残差预算，允许显式设置 1–16384 MiB。GLM 每 token 的四路残差为 64 KiB，512 MiB 只能容纳一次 8192 tokens 的分层读取；2 GiB 可容纳 32768 tokens，减少长输入重复搬运未驻留专家的次数。残差按实际输入分配在 pinned 主存，未扩大 GPU 专家缓存的占用。该参数需结合本机可用内存、长文答案与首 token 延迟评测，不能直接套到低内存机器。

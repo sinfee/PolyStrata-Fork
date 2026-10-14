@@ -33,7 +33,7 @@ constexpr int kStageRows = 32;
 // 8 GB card Qwen3.6 reads 30,836 at 1,386 to 1,399 in one read and at 1,101 to 1,233 in reads of 8,192.  A read
 // of more than two calls keeps those rows in pinned host memory, 64 KiB a token for GLM and 8 for Qwen3.6: this
 // much is 8,192 tokens of GLM's and 65,536 of Qwen3.6's.
-constexpr size_t kReadBytes = size_t(512) << 20;
+// 默认主存读取预算为 512 MiB；可通过 --read-buffer-mib 按机器内存调整。
 constexpr size_t kChunkBytes = size_t(512) << 20;   // one upload, and each of the two pinned buffers
 // Zero bytes behind every matrix the batched kernels may multiply (Mmq::fits): they read up to a step of 256
 // columns past a row that ends inside one, which is at most 7 blocks of 34 bytes.
