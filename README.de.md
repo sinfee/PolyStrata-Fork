@@ -336,6 +336,8 @@ startet er es und sagt dir, wie du deine Apps verbindest. KI-Tools können PolyS
 [Lade PolyStrata herunter](https://github.com/VecSzn/PolyStrata/archive/refs/heads/main.zip) und entpacke es (oder nutze
 `git clone`). **Windows:** Doppelklick auf **`START-HERE.bat`**. **Linux:** Führe im PolyStrata-Ordner **`./setup.sh`** aus.
 
+**Mac (Apple Silicon, M1 bis M5, macOS 15 oder neuer):** Installiere einmal Apples Command Line Tools (`xcode-select --install` im Terminal; Xcode selbst brauchst du nicht). Öffne dann das Terminal im PolyStrata-Ordner und führe **`./setup.sh`** aus. Es baut die Mac-Engine auf deinem Mac (etwa 7 Minuten), stellt dieselben Fragen, lädt das Modell und startet es. Beim nächsten Mal startet `./setup.sh` sofort. Welche Größe zu deinem Mac passt und wie schnell es ist: [docs/MAC.md](docs/MAC.md).
+
 Die Schritte sind für NVIDIA und AMD gleich. Der Installer erkennt deine Karte und richtet die passende Engine
 dafür ein. Er stellt dir ein paar Fragen:
 
@@ -500,6 +502,20 @@ Wo sie sich unterscheiden:
 | **Lange Prompts** | PolyStrata liest die erste Nachricht eines Chats komplett, etwa 1 Minute pro 30,000 Tokens. Folgenachrichten starten in Sekunden. | Die erste Nachricht wird komplett gelesen, etwa 40 Sekunden pro 30,000 Tokens. | Die erste Nachricht wird ganz gelesen: 30,000 Tokens dauern auf der Workstation 4 bis 5 Sekunden und auf dem 8-GB-Laptop 14 bis 20 Sekunden. |
 
 Mehr: [wo deine Chats gespeichert werden](docs/INSTALL.md#where-things-are-stored), [die API](docs/DETAILS.md#using-it).
+
+### Optional: mehr Tempo mit einer Grafikkarte, wenn das ganze Modell in den RAM passt
+
+Zwei Opt-in-Einstellungen (von RubenTorney, #1904 und #1905). Sie helfen, wenn du eine Grafikkarte nutzt und dein RAM alle Experten hält (Stratas Arena-Modus, zum Beispiel Q2_0 oder IQ3_XXS auf einem PC mit 64 GB). Öffne deine Konfiguration `strata-<model>.json` im PolyStrata-Datenordner ([wo](docs/INSTALL.md#where-things-are-stored)) und füge hinzu:
+
+- **Schnellere Ausgabe:** `"--adapt-async", "1"` in die Liste `"args"`. Der Experten-Cache wird dann in einem Hilfs-Thread aktualisiert, statt die Antwort anzuhalten. Gemessen auf einer RTX 5070 (Windows, Q2_0): +4-5 % Ausgabe, +7-10 % bei Code und langen Dokumenten. Antworten können leicht vom Standard abweichen (sie bleiben von Lauf zu Lauf gleich).
+- **Schnelleres Prompt-Lesen unter Windows:** `"STRATA_PIN_BY_NEED": "1"` im Block `"env"`. Windows kann nur etwa den halben RAM für die Grafikkarte sperren; damit werden zuerst die Experten gesperrt, die die Karte wirklich braucht. Gemessen auf der RTX 5070: +4,4 % Prompt-Lesen.
+
+```json
+"args": [ ..., "--adapt-async", "1" ],
+"env": { "STRATA_PIN_BY_NEED": "1" }
+```
+
+Starte PolyStrata danach neu (`START-HERE.bat` oder `./setup.sh`). Zum Rückgängigmachen entferne die beiden Einträge.
 
 ## Etwas ist schiefgelaufen?
 

@@ -235,6 +235,7 @@ Experimental, written and tested by community members on their own machines:
 
 - **Older graphics cards** (Tesla P40 / V100, GTX 10, Radeon VII / MI50, RX 6700 XT, RX 5500 XT): [Older GPUs](docs/OLDER_GPUS.md).
 - **Intel Arc**, built from source on Linux: [Intel Arc](docs/INTEL_ARC.md).
+- **Apple Silicon Macs (M1 to M5)**, built from source by `./setup.sh` (the Metal engine): [Mac](docs/MAC.md).
 - **AMD Ryzen AI Max (Strix Halo)**, built from source on Linux: [Strix Halo](docs/STRIX_HALO.md).
 - **Older processors without AVX2**: they work, but slowly. [Older CPUs](docs/INSTALL.md#older-cpus-experimental).
 
@@ -493,6 +494,26 @@ Where they differ:
 | **Long prompts** | The first message of a chat is read in full, about 1 minute per 30,000 tokens. | The first message is read in full, about 40 seconds per 30,000 tokens. | The first message is read in full: 30,000 tokens take 4 to 5 seconds on the workstation and 14 to 20 seconds on the 8 GB laptop. |
 
 More: [where your chats are stored](docs/INSTALL.md#where-things-are-stored), [the API](docs/DETAILS.md#using-it).
+
+### Optional: more speed on one card when the whole model fits in RAM
+
+Two opt-in settings (by RubenTorney, #1904 and #1905). They help when you run one graphics card and your RAM holds
+every expert (PolyStrata's arena mode, for example Q2_0 or IQ3_XXS on a 64 GB PC). Open your config,
+`strata-<model>.json` in the PolyStrata data folder ([where](docs/INSTALL.md#where-things-are-stored)), and add:
+
+- **Faster decode:** `"--adapt-async", "1"` to the `"args"` list. The expert cache then updates on a helper thread
+  instead of pausing the answer. Measured on an RTX 5070 (Windows, Q2_0): +4-5% decode, +7-10% on code and long
+  documents. Answers can differ slightly from the default (they stay the same from run to run).
+- **Faster prompt reading on Windows:** `"STRATA_PIN_BY_NEED": "1"` in the `"env"` block. Windows can lock only about
+  half the RAM for the graphics card; this locks the experts the card actually needs first. Measured on the RTX 5070:
+  +4.4% prompt reading.
+
+```json
+"args": [ ..., "--adapt-async", "1" ],
+"env": { "STRATA_PIN_BY_NEED": "1" }
+```
+
+Restart PolyStrata (`START-HERE.bat` or `./setup.sh`) after the change. To undo, remove the two entries.
 
 ## Something went wrong?
 

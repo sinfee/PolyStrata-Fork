@@ -488,6 +488,20 @@ GLM 5.3 Flash のほかの量子化にはまだ対応していません：[足�
 
 詳しくは：[チャットの保存場所](docs/INSTALL.md#where-things-are-stored)、[API](docs/DETAILS.md#using-it)。
 
+### オプション：モデル全体が RAM に収まる場合、GPU 1 枚でさらに高速化
+
+2 つのオプトイン設定です（RubenTorney 氏による #1904 と #1905）。GPU を 1 枚使い、RAM にすべてのエキスパートが収まる場合（PolyStrata の arena モード。例：64 GB の PC で Q2_0 や IQ3_XXS）に効果があります。PolyStrata のデータフォルダーにある設定ファイル `strata-<model>.json`（[場所](docs/INSTALL.md#where-things-are-stored)）を開き、次を追加します：
+
+- **生成の高速化：** `"args"` リストに `"--adapt-async", "1"`。エキスパートキャッシュの更新が回答を止めずに補助スレッドで行われます。RTX 5070（Windows、Q2_0）での実測：生成 +4〜5%、コードや長文では +7〜10%。回答はデフォルトとわずかに異なる場合があります（実行ごとには同じです）。
+- **Windows でのプロンプト読み込みの高速化：** `"env"` ブロックに `"STRATA_PIN_BY_NEED": "1"`。Windows はGPU 用に RAM の約半分しか固定できないため、この設定で GPU が本当に必要とするエキスパートから先に固定します。RTX 5070 での実測：プロンプト読み込み +4.4%。
+
+```json
+"args": [ ..., "--adapt-async", "1" ],
+"env": { "STRATA_PIN_BY_NEED": "1" }
+```
+
+変更後は PolyStrata を再起動してください（`START-HERE.bat` または `./setup.sh`）。元に戻すには、2 つの項目を削除します。
+
 ## うまくいかないとき
 
 - **PolyStrata の初回起動で PC が固まった。** モデルの読み込み中はよくあることです。ウィンドウを閉じずに待ってください。

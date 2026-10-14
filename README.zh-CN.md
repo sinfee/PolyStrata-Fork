@@ -473,6 +473,20 @@ GLM 5.3 Flash 的其他量化版本暂时不支持：[还缺什么](docs/GLM.md#
 
 更多：[聊天记录存在哪里](docs/INSTALL.md#where-things-are-stored)、[API](docs/DETAILS.md#using-it)。
 
+### 可选：整个模型都能放进内存时，单卡再提速
+
+两个可选设置（来自 RubenTorney 的 #1904 和 #1905）。适用于只用一张显卡、并且内存能放下所有专家的情况（PolyStrata 的 arena 模式，例如 64 GB 电脑上的 Q2_0 或 IQ3_XXS）。打开 PolyStrata 数据文件夹里的配置文件 `strata-<model>.json`（[在哪里](docs/INSTALL.md#where-things-are-stored)），加入：
+
+- **生成更快：** 在 `"args"` 列表里加 `"--adapt-async", "1"`。专家缓存改在辅助线程里更新，不再暂停回答。在 RTX 5070（Windows，Q2_0）上实测：生成 +4-5%，代码和长文档 +7-10%。回答可能与默认设置略有不同（但每次运行都一样）。
+- **Windows 上读取提示更快：** 在 `"env"` 块里加 `"STRATA_PIN_BY_NEED": "1"`。Windows 只能为显卡锁定大约一半的内存；这个设置会先锁定显卡真正需要的专家。在 RTX 5070 上实测：读取提示 +4.4%。
+
+```json
+"args": [ ..., "--adapt-async", "1" ],
+"env": { "STRATA_PIN_BY_NEED": "1" }
+```
+
+修改后重启 PolyStrata（`START-HERE.bat` 或 `./setup.sh`）。要撤销，删掉这两项即可。
+
 ## 出问题了？
 
 - **PolyStrata 第一次启动时电脑卡死了。** 加载模型时这是正常的。请耐心等待，不要关闭窗口。

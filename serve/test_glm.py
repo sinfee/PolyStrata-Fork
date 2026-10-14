@@ -111,6 +111,18 @@ class ServiceForGlm(unittest.TestCase):
         self.assertEqual(svc.render_prompt(msgs, None, {}), "q<|assistant|><think>")
         self.assertEqual(svc.render_prompt(msgs, None, {"enable_thinking": False}), "q<|assistant|><think></think>")
 
+    def test_model_effort_preserves_glm_levels(self):
+        # 覆盖三类 API 的原始档位，以及网关模板参数的优先级。
+        svc = self.service(GlmTokens(), "{{ reasoning_effort }}")
+        for req, expected in (({"reasoning_effort": "high"}, "high"),
+                              ({"reasoning": {"effort": "max"}}, "max"),
+                              ({"output_config": {"effort": "low"}}, "low"),
+                              ({"reasoning_effort": "max", "chat_template_kwargs": {"reasoning_effort": "high"}}, "high")):
+            self.assertEqual(svc.model_kwargs(req, {"reasoning_effort": "xhigh"})["reasoning_effort"], expected)
+        self.assertEqual(svc.model_kwargs({"reasoning_effort": "high"}, {"enable_thinking": False}), {"enable_thinking": False})
+        svc.config_effort = "high"
+        self.assertEqual(svc.model_kwargs({}, {"reasoning_effort": "xhigh"})["reasoning_effort"], "high")
+
 
 if __name__ == "__main__":
     unittest.main()
