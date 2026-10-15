@@ -50,7 +50,7 @@ bool Mmq::fits(int type, int64_t w_rows, int64_t w_cols) {
     const bool fallback = w_rows % 128 != 0;
     const auto& dev = ggml_cuda_info().devices[ggml_cuda_get_device()];
     for (int J = 8; J <= 128; J += 8) {
-        const ggml_cuda_mmq_config c = ggml_cuda_mmq_get_config(t, J, fallback, dev.cc);
+        const ggml_cuda_mmq_config c = ggml_cuda_mmq_get_config(t, J, fallback, dev.cc, GGML_PREC_Q8);
         if (c.type != GGML_TYPE_COUNT && mmq_get_nbytes_shared(c, dev.cc) <= dev.smpbo) return true;
     }
     return false;
@@ -94,12 +94,11 @@ void Mmq::mul(const void* w, int type, int64_t w_rows, int64_t w_cols, size_t st
     a.nsamples_x = 1;
     a.nsamples_y = 1;
     a.ncols_max = max_rows;
-    a.ncols_opt = max_rows;
 
     auto& ctx = *(ggml_backend_cuda_context*) ctx_;
     const cudaStream_t s = (cudaStream_t) stream;
     switch (t) {
-#define X(T) case GGML_TYPE_##T: mul_mat_q_case<GGML_TYPE_##T>(ctx, a, s); break;
+#define X(T) case GGML_TYPE_##T: mul_mat_q_case<GGML_TYPE_##T, GGML_PREC_Q8>(ctx, a, s); break;
         STRATA_POLY_MMQ_TYPES(X)
 #undef X
         default: throw std::runtime_error("mmq: tensor type " + std::to_string(type) + " is not built");
